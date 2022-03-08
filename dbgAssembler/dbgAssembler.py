@@ -48,10 +48,12 @@ class DbgGraph:
         self.sequence = sequence
         self.k = k
         
-    def create_uniq_kmers(self):
+    def create_kmers(self):
         """
-        Split the sequence in kmers of size k and add to the dictionary self.edges. 
+        Split the sequence in kmers of size k and add to the dictionary edges. 
         Associate each kmer with its repeat count
+        
+        Nr of kmers = L-k+1, L is the length of the input sequence, k is the kmer size
         """
         edges = dict()
         
@@ -59,7 +61,7 @@ class DbgGraph:
         sequence_length = len(self.sequence)
         
         #iterate over the length to get the start index and the length of the sequence 
-        #starting at position kto get the end index for slicing
+        #starting at position k to get the end index for slicing
         for start, end in zip(range(sequence_length), range(self.k, sequence_length+1)):
             #slice the sequence in kmers using the indices:
             kmer = self.sequence[start:end]
@@ -76,7 +78,7 @@ class DbgGraph:
         """
         Create the node by splitting up the edges in pairs of k-1mers
         """
-        edges = self.create_uniq_kmers()
+        edges = self.create_kmers()
         graph = dict()
         
         for node, repeat in edges.items():
@@ -101,7 +103,7 @@ class DbgGraph:
         """
         Count the number of outgoing and ingoing edges for each node
         """
-        edges = self.create_uniq_kmers()
+        edges = self.create_kmers()
         nodes = dict() #create a dictionary to store each node with its in and out degreees
         
         for node in graph.keys(): #loop over each node
@@ -125,7 +127,7 @@ class DbgGraph:
         return nodes
     
     
-    def get_nodes(self):
+    def get_nodes(self, g):
         """
             If an eulerian trail is present, then we have one node with:
                 
@@ -137,7 +139,7 @@ class DbgGraph:
         """
         start = set()
         end = set()
-        nodes = self.count_edges()
+        nodes = self.count_edges(g)
         
         for node, degrees in nodes.items(): 
             diff = degrees["out"] - degrees["in"] 
@@ -152,53 +154,22 @@ class DbgGraph:
         elif len(start) == 0 and len(end) == 0:
             random.choice(nodes.keys())
            
-    def simplification(self, g):
-        """
-        Merge nodes with where one node only has one out degree
-        """
-        graph = self.create_graph()
-        in_out_degree = self.count_edges(g)
-        
-        to_remove = set()
-        to_update = dict()
-        for node, degrees in in_out_degree.items():
-            if degrees["in"] == degrees["out"] == 1:
-                
-                next_node = "".join(graph[node].keys())
-                merged_node = node + next_node[-1]
-                             
-                to_remove.add(node)
-                to_update[next_node] = merged_node
-                for prev_node, connected_nodes in graph.items():
-                    if node in connected_nodes:                      
-                        graph[prev_node][merged_node] = graph[prev_node].pop(node)
-        
-
-        #To do: merge nodes with one out degree and update graph                              
-        print(graph)
-        for next_node, merged_node in to_update.items():
-            
-            if next_node in graph.keys():
-                graph[merged_node] = graph.pop(next_node)  
-            
-        return graph
     
-    def dfs(self):
+    def dfs(self, graph):
         """
         Use a depth-first search algorithm to traverse each edge to a new node
         """
-
-        graph = self.simplification()
-        node = self.get_nodes()  
-        edge_count = self.count_edges()
+        
+        node = self.get_nodes(graph)  
+        edge_count = self.count_edges(graph)
         path = list()
         
         
         def traversal(node):
-            
+
             #choose new node at random
             while edge_count[node]["out"] != 0: 
-               
+                
                #Get the connected nodes which have an untraversed connected edge from the current node
                connected_nodes = list()
                for next_node, edges in graph[node].items():
@@ -206,32 +177,35 @@ class DbgGraph:
                      connected_nodes.append(next_node)  
                      
                connected_node = random.choice(connected_nodes)
+                              
+               
                graph[node][connected_node] -= 1
                
                edge_count[node]["out"]  -= 1
                
                traversal(connected_node)
                
-               
-            path.append(node)                 
-    
+            path.append(node)       
+            
+
         traversal(node)
         
+               
         return path[::-1]
             
     
-    def get_sequence(self):
+    def get_sequence(self, graph):
         sequence = ""
         first = True
         
-        path = self.dfs()
-        
+        path = self.dfs(graph)
+
         for node in path:
             if first:
                 sequence += node
                 first = False
-            else:    
-                sequence += node[-1]
+            else:
+                sequence += node[self.k-2:]  
                 
         return(sequence)
             
@@ -242,27 +216,43 @@ if __name__ == "__main__":
     """
     If the script is run as main
     """
-    test_seq = "ACTGACGTACGTACGTGTGAAGCTAGTCGCGCATTACGGGTTGAAACGTTGGTT"
-    my_graph = DbgGraph(test_seq, 3) 
     
-    edges = my_graph.create_uniq_kmers()
-    
-    
-    g = my_graph.create_graph()  
+    test_seq = "ATGGTTGAATGACTCCTATAACGAACTTCGACATGGCAAAATCCCCCCCTCGCGACTTC"
+    my_graph = DbgGraph(test_seq, 4)     
+    edges = my_graph.create_kmers()  
+
+    g = my_graph.create_graph()   
     g
+
     
-    g = my_graph.simplification(g)
-    g
+
     my_graph.count_edges(g)
-    my_graph.get_nodes()   
+    my_graph.get_nodes(g)   
     
-    
-    new_seq = my_graph.get_sequence()
-    new_seq
+    new_seq = my_graph.get_sequence(g)
     
     count = 0
     while new_seq != test_seq:
-       new_seq = my_graph.get_sequence()
-       count += 1
+        my_graph = DbgGraph(test_seq, 4)     
+        edges = my_graph.create_kmers()  
+
+        g = my_graph.create_graph()   
+        g
+
         
-    print(count)
+
+        my_graph.count_edges(g)
+        my_graph.get_nodes(g)   
+        
+        new_seq = my_graph.get_sequence(g)  
+        print(new_seq)
+        count += 1
+    print(count)    
+    new_seq
+    test_seq 
+
+   # print(new_seq == test_seq)
+
+#-----------------------------------------------------------------------------------------
+    
+        
