@@ -28,7 +28,7 @@ Usage:
     python dbgAssembler.py -i <sequence> -k <kmer_size>
 
 """
-
+  
 import random
 from check_valid_sequence import check_valid_sequence
 from check_valid_sequence import WrongFormat
@@ -37,7 +37,7 @@ class DbgGraph:
     """
     class to create kmers of length k using a string sequence.    
     """
-    def __init__(self, sequence, k):
+    def __init__(self, sequence, k=None):
         """
         intialize variables
         """
@@ -46,9 +46,12 @@ class DbgGraph:
             raise WrongFormat("Error: DNA sequence contains ambiguous characters")
         
         self.sequence = sequence
+        
+        if not k:
+            k = int(len(self.sequence)/3)
         self.k = k
         
-    def create_kmers(self):
+    def __create_kmers(self):
         """
         Split the sequence in kmers of size k and add to the dictionary edges. 
         Associate each kmer with its repeat count
@@ -78,7 +81,7 @@ class DbgGraph:
         """
         Create the node by splitting up the edges in pairs of k-1mers
         """
-        edges = self.create_kmers()
+        edges = self.__create_kmers()
         graph = dict()
         
         for node, repeat in edges.items():
@@ -95,30 +98,31 @@ class DbgGraph:
             #overlap
             if right not in graph[left].keys():              
                 graph[left].update({right:repeat})
-            
+                
+        self.graph = graph
         return graph       
     
     
-    def count_edges(self, graph):
+    def count_edges(self):
         """
         Count the number of outgoing and ingoing edges for each node
         """
-        edges = self.create_kmers()
+        edges = self.__create_kmers()
         nodes = dict() #create a dictionary to store each node with its in and out degreees
         
-        for node in graph.keys(): #loop over each node
+        for node in self.graph.keys(): #loop over each node
             
             nodes[node] = {"in": 0, "out": 0} #create nested dictionaries to store in and out degrees
             
             #count the out degree
-            for connected_node in graph[node]:
-                edges = graph[node][connected_node] #The number of repeats will be the number of 
+            for connected_node in self.graph[node]:
+                edges = self.graph[node][connected_node] #The number of repeats will be the number of 
                                                          #edges for one connected node
                 nodes[node]["out"] += edges #add the edges to one connected node to get the out degree of the current node
             
             #get the in edges by checking the keys in which 
             #the node is the value for
-            for connected_nodes in graph.values():
+            for connected_nodes in self.graph.values():
                 if node in connected_nodes: #if the node is present as a value for another node, then
                                             #the number of out edges for the other node will 
                                             #be the number of in edges for the current node
@@ -127,7 +131,7 @@ class DbgGraph:
         return nodes
     
     
-    def get_nodes(self, g):
+    def get_nodes(self):
         """
             If an eulerian trail is present, then we have one node with:
                 
@@ -139,7 +143,7 @@ class DbgGraph:
         """
         start = set()
         end = set()
-        nodes = self.count_edges(g)
+        nodes = self.count_edges()
         
         for node, degrees in nodes.items(): 
             diff = degrees["out"] - degrees["in"] 
@@ -155,16 +159,16 @@ class DbgGraph:
             random.choice(nodes.keys())
            
     
-    def dfs(self, graph):
+    def dfs(self):
         """
         Use a depth-first search algorithm to traverse each edge to a new node
         """
         
-        node = self.get_nodes(graph)  
-        edge_count = self.count_edges(graph)
+        graph = self.create_graph()
+        node = self.get_nodes()
+        edge_count = self.count_edges()
         path = list()
-        
-        
+
         def traversal(node):
 
             #choose new node at random
@@ -177,7 +181,6 @@ class DbgGraph:
                      connected_nodes.append(next_node)  
                      
                connected_node = random.choice(connected_nodes)
-                              
                
                graph[node][connected_node] -= 1
                
@@ -193,13 +196,13 @@ class DbgGraph:
                
         return path[::-1]
             
-    
-    def get_sequence(self, graph):
+
+    def get_sequence(self):
         sequence = ""
         first = True
         
-        path = self.dfs(graph)
-
+        path = self.dfs()
+        
         for node in path:
             if first:
                 sequence += node
@@ -214,45 +217,8 @@ class DbgGraph:
 
 if __name__ == "__main__":
     """
-    If the script is run as main
+    If the script is run as main script
     """
-    
-    test_seq = "ATGGTTGAATGACTCCTATAACGAACTTCGACATGGCAAAATCCCCCCCTCGCGACTTC"
-    my_graph = DbgGraph(test_seq, 4)     
-    edges = my_graph.create_kmers()  
-
-    g = my_graph.create_graph()   
-    g
-
-    
-
-    my_graph.count_edges(g)
-    my_graph.get_nodes(g)   
-    
-    new_seq = my_graph.get_sequence(g)
-    
-    count = 0
-    while new_seq != test_seq:
-        my_graph = DbgGraph(test_seq, 4)     
-        edges = my_graph.create_kmers()  
-
-        g = my_graph.create_graph()   
-        g
-
-        
-
-        my_graph.count_edges(g)
-        my_graph.get_nodes(g)   
-        
-        new_seq = my_graph.get_sequence(g)  
-        print(new_seq)
-        count += 1
-    print(count)    
-    new_seq
-    test_seq 
-
-   # print(new_seq == test_seq)
-
-#-----------------------------------------------------------------------------------------
-    
+     
+    pass
         
