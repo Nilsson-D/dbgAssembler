@@ -25,11 +25,12 @@ Procedure:
        the new sequence, then backtrack until a node with an unused edge is found and start over the path search
 
 Usage:
-    python dbgAssembler.py -i <sequence> -k <kmer_size>
+    python dbgAssembler.py <sequence> -k <kmer_size> [optional]
 
 """
   
 import random
+import argparse 
 from check_valid_sequence import check_valid_sequence
 from check_valid_sequence import WrongFormat
 
@@ -45,10 +46,18 @@ class DbgGraph:
         if not check_valid_sequence(sequence):
             raise WrongFormat("Error: DNA sequence contains ambiguous characters")
         
-        self.sequence = sequence
+        self.sequence = sequence.upper()
         
         if not k:
             k = int(len(self.sequence)/3)
+            
+        if k > len(self.sequence):
+            k = int(len(self.sequence)/3)
+            print(f"kmer size cannot be longer than the sequence\n1/3 of the sequence length: {k} will instead be used as k")
+            
+        if k > 256:
+            print("Max kmer size set reached. Using size 256")
+            k=256
         self.k = k
         
     def __create_kmers(self):
@@ -213,12 +222,39 @@ class DbgGraph:
         return(sequence)
             
 
+
+def main():
+    """
+    When called as main, get the input of 
+    """
+    
+    parser = argparse.ArgumentParser(usage="""%(prog)s python dbgAssembler.py <sequence> -k <kmer_size> [optional] \nType -h/--help for the help message""",
+                                 description="This program takes a dna string as input and breaks it to kmers of size k. Then reassembles the string using a De Bruijn graph styled manner")
+    
+    parser.add_argument("i", metavar='<input_sequence>', type=str,  help="a DNA string")
+    parser.add_argument("-k",  metavar='<kmer_size>', type=int, help="kmer size (default 1/3 of the sequence length) \n max: 256")
+    
+    args = parser.parse_args()
+    
+    sequence = args.i
+    k = args.k 
+    
+    if k: 
+        graph = DbgGraph(sequence, k)
+    else:
+       graph = DbgGraph(sequence) 
+    
+    
+    
+    new_seq = graph.get_sequence()
+    print(f"\nReassembly: {new_seq}")
+    
+    print(f"Successful assembly: {sequence == new_seq}")
     
 
 if __name__ == "__main__":
     """
     If the script is run as main script
-    """
-     
-    pass
+    """    
+    main()
         
