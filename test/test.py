@@ -30,15 +30,23 @@ Usage:
     python test.py 
 """
 
-from numpy.random import choice
-from dbgAssembler import DbgGraph
+
+# import requi9red module
+import sys
+  
+# append the path of the
+# parent directory so it can be run in the root dir
+sys.path.append(".")
+
+from numpy.random import choice #import choice for creating random sequences
+from dbgAssembler import DbgGraph #import the assembler for testing
 
 
 def rnd_sequences(times = 10, length = 1000, bias=0.5):
     """
     Create >times> number of sequences with length >length> and with a gc-content of <bias>
     First create the probabilities and then loop <times> times and create the sequences
-    by sampling for 
+    by sampling a sequence of length <length> 
     """
     #create the probabilities. Divide by 2 as the prob must sum to 1
     a, t = (1 - bias)/2, (1 - bias)/2
