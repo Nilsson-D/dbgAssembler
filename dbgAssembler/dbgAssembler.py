@@ -16,12 +16,11 @@ List of functions:
 List of classes: 
     DbgGraph - functions:
         __create_kmers()
-        create_graph()
-        count_edges()
-        get_nodes()
-        dfs(): 
-            nested func - traversal()
-        get_sequence()
+        __create_graph()
+        __count_edges()
+        __get_nodes()
+        traversal()
+        assemble()
              
 
 List of "non standard" modules:
@@ -44,7 +43,9 @@ Usage:
     python dbgAssembler.py <sequence> -k <kmer_size> [optional]
 
 """
-  
+
+
+from pathlib import Path
 import random #enables random choice of edge traversal
 import argparse #enables user input
 from check_valid_sequence import check_valid_sequence #to check for correct input
@@ -76,7 +77,7 @@ class DbgSolver:
             k = int(len(self.sequence)/3) #then set it to be 1/3 of the sequence length
             
             if k > 256: #set an upper limit of k to 256 
-                print("Max kmer size set reached. Using size 256")
+                print("Max kmer size reached. Using size 256")
                 k=256
                 
             else: #if k is not bigger than 256
@@ -95,7 +96,7 @@ class DbgSolver:
         
         Nr of kmers = L-k+1, L is the length of the input sequence, k is the kmer size
         """
-        edges = dict() #represent all edges by a dictionary
+        edges = list() #represent all edges by a dictionary
                        #This is to keep track of the repeat of the kmer
         
         #get length of the sequence
@@ -107,15 +108,12 @@ class DbgSolver:
             #slice the sequence in kmers using the indices:
             kmer = self.sequence[start:end]
             
-            if kmer not in edges.keys(): #if the kmer is not present, add to dict and give the repeat count 1
-                edges[kmer] = 1
-            else: #if already present, increase the repeat count by 1
-                edges[kmer] += 1
+            edges.append(kmer)
         
         return edges #return the edges
         
     
-    def create_graph(self):
+    def __create_graph(self):
         """
         Create the node by splitting up the edges in pairs of k-1mers
         These will be used to create the De Bruijn graph
@@ -125,7 +123,7 @@ class DbgSolver:
         graph = dict() #store the nodes in a dictionary
                        #the De Bruijn graph will be represented as an adjacency list with slight modification taking repeats into account
         
-        for node, repeat in edges.items(): #get the edge and the repeat count
+        for node in edges: #get the edge and the repeat count
 
             left, right =  node[:-1], node[1:] #create the nodes which will create two nodes per kmer, 
                                                #the nodes will have a k-1 overlap to each other
@@ -133,50 +131,44 @@ class DbgSolver:
             #populate the adjacency list, all nodes needs to be present as a key
             #in the dictionary
             if left not in graph: 
-                graph[left] = dict()
+                graph[left] = list()
             
             if right not in graph:
-                graph[right] = dict()
+                graph[right] = list()
                 
-            #As left and right are from the same kmer, this will always be true in terms of 
-            #overlap, also set the next node (value) to have the value of the repeat.
-            #This represents the number of edges pointing towards the connected node
-            if right not in graph[left].keys():              
-                graph[left].update({right:repeat})
+            #As left and right are from the same kmer, this will always be true in terms of overlap
+            #This represents the number of edges pointing towards the connected node             
+            graph[left].append(right)
                 
-        self.graph = graph
-        return graph       
+        self.graph = graph      
     
     
-    def count_edges(self, graph):
+    def __count_edges(self):
         """
         Count the number of outgoing and ingoing edges for each node
         """
-        edges = self.__create_kmers()
         nodes = dict() #create a dictionary to store each node with its in and out degrees
         
-        for node in graph.keys(): #loop over each node
+        for node in self.graph.keys(): #loop over each node
             
             nodes[node] = {"in": 0, "out": 0} #create nested dictionaries to store in and out degrees
             
-            #count the out degree
-            for connected_node in graph[node]:
-                edges = graph[node][connected_node] #The number of repeats will be the number of 
+            edges = len(self.graph[node]) #The number of repeats will be the number of 
                                                          #edges for one connected node
-                nodes[node]["out"] += edges #add the edges to one connected node to get the out degree of the current node
+            nodes[node]["out"] = edges #add the edges to one connected node to get the out degree of the current node
             
             #get the in edges by checking the keys in which 
             #the node is the value for
-            for connected_nodes in graph.values():
+            for connected_nodes in self.graph.values():
                 if node in connected_nodes: #if the node is present as a value for another node, then
                                             #the number of out edges for the other node will 
                                             #be the number of in edges for the current node
-                    nodes[node]["in"] += connected_nodes[node] #Sum all in edges to get the in degree of the current node
-              
-        return nodes
+                    nodes[node]["in"] += connected_nodes.count(node) #Sum all in edges to get the in degree of the current node
+                    
+        self.degrees = nodes  
     
     
-    def get_nodes(self, edge_count):
+    def __get_nodes(self):
         """
             If an eulerian trail is present, then we have one node with:
                 
@@ -187,95 +179,108 @@ class DbgSolver:
             Then start at a random node
         """
         #create two sets to store the potential start and end node
-        start = set() 
-        end = set()
+        start = dict() 
+        end = dict()
+        
+        self.__count_edges()
         
         
-        for node, degrees in edge_count.items():  #start by looping through the in and out degree
+        for node, degrees in self.degrees.items():  #start by looping through the in and out degree
             diff = degrees["out"] - degrees["in"] #check the difference
             if diff == 1: #if 1, we have a start node as the out degree is larger
-                start.add(node)
+                return node, self.graph[node]
             elif diff == -1: #if -1, we have a higher in degree than out, meaning it is a end node
-                end.add(node)
+                end[node] = self.graph[node]
         
         #if the sets start and end have length 1, we have a eulerian trial, then get the start node
         if len(start) == 1 and len(end) == 1:
-            return "".join(start) #get the string value
+            return start #get the string value
         
         #if all nodes are balanced, then choose one at random to return as we do not know the start
         #for an eulerian cycle
         elif len(start) == 0 and len(end) == 0:
-            print("hey")
-            return random.choice(list(edge_count.keys()) )
-           
+            node = random.choice(list(self.degrees.edge_count.keys()) )
+            return node, self.graph[node]
+        
+               
+            
+    def __traversal(self):
+         """
+         Form a cycle Cycle by randomly walking in Graph
+         """
+         #Put all edges into the unvisited edges:
+         self.__create_graph()
+         unvisited = self.graph.copy()
+              
+         #assign the start node
+         start_node, value = self.__get_nodes()
+         
+         
+         #The get a random neighbor to the start node
+         node = random.choice(value)
+         
+         #assign the first node to the path/cycle depending on the of all nodes are balanced
+         cycle = [start_node, value[unvisited[start_node].index(node)]]
+         
+         
+         unvisited[start_node].pop(unvisited[start_node].index(node)) #pop chosen connected node
+
+         if len(value) == 1: #if the node only has one edge, we will set it as explored. Thus, we remove it from our unvisited list
+             unvisited.pop(start_node)
+             
+         #While there are unvisited edges in graph:
+         while unvisited:
+              #Check if the last node in the cycle still is present in the unvisited graph:
+              if cycle[-1] in unvisited:
+                   neighbors = unvisited.pop(cycle[-1]) #if so remove the last node
+                   if len(neighbors) > 0: #check if the last node has any connected nodes
+                        if len(neighbors) > 1:  #if more than one edge
+                             #Put back the remaining unvisited edges:
+                             unvisited[cycle[-1]] = neighbors[1:]       
+                             
+                        #Add the connected node whatever there only is one node or multiple connected nodes
+                        cycle.append(neighbors[0])
     
-    def dfs(self):
-        """
-        Use a depth-first search algorithm with backtracking to traverse each edge to a new node.
-        When reaching a node with no edges left, add it to a list representing the path. Then 
-        go back to find a node with unused edges and start over until next stop and so on.
-        The order of the list needs to be reversed as the first element to be put in is the end node
-        """
-        
-        graph = self.create_graph() #create the Bruijn graph
-        edge_count = self.count_edges(graph) #fecth the degree for each node
-        node = self.get_nodes(edge_count) #get the start node
-        
-        path = list() #create a list to hold the path
+              #If the last node in the cycle does not have any remaining edges.
+              #This is only applicable if we have an euileran cycle
+              else:                   
+                   for i in range(len(cycle)): #iterate over the nodes in the path
+                        if cycle[i] in unvisited: #when we find one node with unvisited nodes, get the connected nodes
+                             neighbors = unvisited.pop(cycle[i]) #get the connected nodes from the graph
+                             if len(neighbors) > 0: #check how many edges there are
+                             
+                                  cycle = cycle[:i] + cycle[i:] #this is needed if we have a cycle instead of a path
+                                  if len(neighbors) > 1: #if more than one edge
+                                       #Put back the remaining unvisited edges:
+                                       unvisited[cycle[-1]] = neighbors[1:]
+                                  #Add the connected node whatever there only is one node or multiple connected nodes
+                                  cycle.append(neighbors[0])
+                             break #break the for loop and start over at the last node
+    
+         return cycle
 
-        #A recursive func for the traversal
-        def traversal(node): #input is the node to traverse from
-
-            #while the node has unused edges, jump to one of the connected nodes
-            while edge_count[node]["out"] != 0: 
-               
-               #Get the connected nodes which have an untraversed connected edge from the current node
-               connected_nodes = list() #create a list to store possible nodes to jump to
-               for next_node, edges in graph[node].items(): #get the connected nodes and their edges
-                   if edges > 0: #if the edge count is not 0, we still have unused edges
-                     connected_nodes.append(next_node)  #add these nodes to the connected_nodes list
-                     
-               connected_node = random.choice(connected_nodes) #choose a connected node at random
-               
-               #now remove the edge that connects the node and its connected_node
-               graph[node][connected_node] -= 1
-               
-               #decrease the nodes out degree by one as we have removed one edge
-               edge_count[node]["out"]  -= 1
-               
-               #call the function on the next node to repeat the process
-               traversal(connected_node)
-               
-            #if the out degree of the node is 0, append the node to the path
-            path.append(node)       
-            
-        #call the traversal func
-        traversal(node)
         
-               
-        return path[::-1] #return the reversed order of the path
-            
-
-    def get_sequence(self):
+    def assemble(self):
         """
-        This function reconstructs the sequence from the eulerian path by
-        concatenating each elements last character in the list to a string. All 
-        the characters of the first element int the list will be used as this is the start        
+        Takes kthe eulerian path/cycle and assembles it
         """
+           
+        c = self.__traversal()
         
-        sequence = "" #create an empty string to use for the concatenation
-        first = True #create a boolean to track the first element in the list
-        
-        path = self.dfs() #get the eulerian path 
-        
-        for node in path: #iterate through the path list
+        sequence = "" # and add to the sequence and set the first to false
+        first = True
+        #Missing step:  convert the cycle c into the sequence:
+        for node in c: #iterate through the path list
+               
             if first: #check for the first element 
                 sequence += node # and add to the sequence and set the first to false
                 first = False
             else: #Add only the last character of all the other nodes that are not the first
                 sequence += node[-1]  
                 
-        return(sequence) #return the reconstructed sequence
+
+        return sequence #return the reconstructed sequence
+
             
 
 
@@ -334,8 +339,8 @@ def main():
    
    
    #get the reconstructed sequence and print the sequence to standard output
-   new_seq = graph.get_sequence()
-  # print(f"\nReassembly: {new_seq}")
+   new_seq = graph.assemble()
+   print(f"\nReassembly: {new_seq}")
    
    #Tell the user if the reassembly was succesful or not by comparing 
    #the input sequence with the reconstructed
@@ -347,3 +352,6 @@ if __name__ == "__main__":
     If the script is run as main script
     """    
     main() #call main
+    
+ 
+    

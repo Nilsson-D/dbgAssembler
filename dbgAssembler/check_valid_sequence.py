@@ -27,7 +27,7 @@ import re #allows searching for invalid characters
 
 
 
-def check_valid_sequence(fasta_line, seq_type = "DNA", isAligned = False):
+def check_valid_sequence(fasta_line, seq_type = "DNA", allowN = True, isAligned = False):
     """
     Check whatever a dna, rna or protein sequence has the correct characters.
     It should be specified if the sequence is from an alignment 
