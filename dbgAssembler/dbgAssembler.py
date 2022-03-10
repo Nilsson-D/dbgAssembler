@@ -203,7 +203,8 @@ class DbgGraph:
         #if all nodes are balanced, then choose one at random to return as we do not know the start
         #for an eulerian cycle
         elif len(start) == 0 and len(end) == 0:
-            return random.choice(edge_count.keys())
+            print("hey")
+            return random.choice(list(edge_count.keys()) )
            
     
     def dfs(self):
@@ -225,7 +226,7 @@ class DbgGraph:
 
             #while the node has unused edges, jump to one of the connected nodes
             while edge_count[node]["out"] != 0: 
-                
+               
                #Get the connected nodes which have an untraversed connected edge from the current node
                connected_nodes = list() #create a list to store possible nodes to jump to
                for next_node, edges in graph[node].items(): #get the connected nodes and their edges
@@ -317,5 +318,11 @@ if __name__ == "__main__":
     """
     If the script is run as main script
     """    
-    main() #call main
-        
+    #main() #call main
+   
+    sequence = "ACGATCGATCGGTACGTAGCTAGCTAGCTGACTAGCAT"
+    k = 5
+    
+    solver = DbgGraph(sequence, k)
+    graph = solver.create_graph()
+    solver.get_sequence()
