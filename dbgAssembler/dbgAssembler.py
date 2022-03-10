@@ -6,10 +6,25 @@ Created on Mon 07-03-2022
 Author: Daniel Nilsson
 
 Description:
+    This program takes a DNA sequenc as input and an optional integer k.
+    It then splits the string in overlapping kmers of size k, produces a De Bruijn graph
+    of k-1 mers. Then finds an Eulerian path and outputs the reconstructed sequence
 
 List of functions:
+    main()
+
+List of classes: 
+    DbgGraph - functions:
+        __create_kmers()
+        __create_graph()
+        __count_edges()
+        __get_nodes()
+        traversal()
+        assemble()
+             
 
 List of "non standard" modules:
+    check_valid_sequence - to handle incorrect input format of the sequence (should be DNA)
    
 Procedure:
     1. Create kmers of specified size
@@ -18,57 +33,79 @@ Procedure:
         * nodes k-1mers of the kmers
         * only uniq kmers will be used
         * repeated kmers are counted
-    4. Check Eulerian path
+    4. Check Eulerian path/cycle
     5. Use Depth-first search algorithm to traverse the edges and nodes
         * traverse the same edge only once
     6. When a dead end is found, put the node at the last position for the construction of
        the new sequence, then backtrack until a node with an unused edge is found and start over the path search
 
 Usage:
-    python dbgAssembler.py -i <sequence> -k <kmer_size>
+    python dbgAssembler.py <sequence> -k <kmer_size> [optional]
 
 """
 
-
-from check_valid_sequence import check_valid_sequence
+from pathlib import Path
+import random #enables random choice of edge traversal
+import argparse #enables user input
+from check_valid_sequence import check_valid_sequence #to check for correct input
 from readfastafiles import readFasta_returnDict
 
 
-from pathlib import Path
-import random
-import numpy as np
-import argparse
 
 class DbgSolver:
     """
-    class to create kmers of length k using a string sequence.    
+    class to create kmers of length k from a DNA sequence, create De Bruijn graph using 
+    k-1 mers, and reconstruction of the DNA sequence, by finding a eulerian path
+        
     """
-    def __init__(self, sequence, k):
+    def __init__(self, sequence, k=None):
         """
-        intialize variables
+        intialize variables, k is optional
         """
         
-        if not check_valid_sequence(sequence):
-            raise Exception("Error: DNA sequence contains ambiguous characters")
+        if not check_valid_sequence(sequence): #check for correct sequence input
+            #raise error otherwise
+            raise Exception("Error: DNA sequence contains ambiguous characters") 
         
+        self.sequence = sequence.upper() #make the sequence to contain only uppercase letters
         
-        self.sequence = sequence
-        self.k = k
+        #handle value of k
+        if not k: #if k is not specified, give k value 1/3 of the sequence length
+            k = int(len(self.sequence)/3)
+            
+        if k > len(self.sequence): #if the specified k is longer than the length of the sequence
+            k = int(len(self.sequence)/3) #then set it to be 1/3 of the sequence length
+            
+            if k > 256: #set an upper limit of k to 256 
+                print("Max kmer size reached. Using size 256")
+                k=256
+                
+            else: #if k is not bigger than 256
+                print(f"kmer size cannot be longer than the sequence\n1/3 of the sequence length: {k} will instead be used")
+            
+        if k > 256: #if user specified k > 256 or 1/3 of the length is > 256, set k to 256
+            print("Max kmer size set reached. Using size 256")
+            k=256
+            
+        self.k = k #intialize k
         
-    def create_kmers(self):
+
+        
+    def __create_kmers(self):
         """
-        Split the sequence in kmers of size k and add to the dictionary self.edges. 
+        Split the sequence in kmers of size k and add to the dictionary edges. 
         Associate each kmer with its repeat count
-        
-        This creates |Text| k + 1 edges
+     
+        Nr of kmers = L-k+1, L is the length of the input sequence, k is the kmer size
         """
-        edges = list()
+        edges = list() #represent all edges by a dictionary
+                       #This is to keep track of the repeat of the kmer
 
         #get length of the sequence
         sequence_length = len(self.sequence)
 
         #iterate over the length to get the start index and the length of the sequence 
-        #starting at position kto get the end index for slicing
+        #starting at position k to get the end index for slicing
         for start, end in zip(range(sequence_length), range(self.k, sequence_length+1)):
             #slice the sequence in kmers using the indices:
             kmer = self.sequence[start:end]
@@ -77,20 +114,27 @@ class DbgSolver:
 
         return edges
 
-    def create_graph(self):
-        """
-        Create the nodes by splitting up the edges in pairs of k-1mers
-        This is an initial graph which do not have uniq k-1mers but will be used when creating the 
-        final de Bruijn graph as an adjacency matrix
-        """
-        edges = self.create_kmers()
-        graph = dict()
         
+    
+    def __create_graph(self):
+        """
+        Create the node by splitting up the edges in pairs of k-1mers
+        These will be used to create the De Bruijn graph
+        """
+                
+        edges = self.__create_kmers() #firstly, get the edges (kmers)
+        graph = dict() #store the nodes in a dictionary
+                       #the De Bruijn graph will be represented as an adjacency list with slight modification taking repeats into account
         
-        for node in edges:
-            left, right =  node[:-1], node[1:]
+        for node in edges: #get the edge and the repeat count
+
+            left, right =  node[:-1], node[1:] #create the nodes which will create two nodes per kmer, 
+                                               #the nodes will have a k-1 overlap to each other
             
-            if left not in graph:
+            #populate the adjacency list, all nodes needs to be present as a key
+            #in the dictionary
+            if left not in graph: 
+
                 graph[left] = list()
             
             if right not in graph:
@@ -100,136 +144,163 @@ class DbgSolver:
             #overlap
             graph[left].append(right)
             
-        return graph
+        self.graph = graph
     
-    def create_adj_matrix(self):
+    
+    def __count_edges(self):
         """
         Represent the de Bruijn graph as an adjacency matrix 
         Here we merge repeated nodes to an unique node 
         """
-        graph = self.create_graph() #get the intial graph
 
-        adjMatrix = np.zeros([len(graph.keys()),len(graph.keys())], dtype=int)
-        node_index = list()
-        for i in list(graph.keys()):
-            node_index.append(i)
+        nodes = dict() #create a dictionary to store each node with its in and out degrees
+        
+        for node in self.graph.keys(): #loop over each node
             
-        
-        for i in list(graph.keys()):
-            row = node_index.index(i)
-        
-            for j in graph[i]:
-                col = node_index.index(j)
-                adjMatrix[row,col] +=1
-                
-        return adjMatrix, node_index
-
-    def count_indegree_outdegree(self):
-        """
-        Count the number of outgoing and ingoing edges for each node
-        """
-
-        adj_matrix, nodes = self.create_adj_matrix()
-        
-        in_out = dict(zip(nodes, [None]*len(nodes)))
-
-        adj_matrix = np.array(adj_matrix)
-        for key, i in zip(nodes, range(adj_matrix.shape[0])):    
-            in_degrees = sum(adj_matrix.T[i])
-            out_degrees = sum(adj_matrix[i])
-            in_out[key] = [in_degrees, out_degrees]
-
-        return in_out
-    
-    def get_nodes(self):
-        """
-        The problem is to reconstruct a given string. This is not a circular path.
-        Thus, we need to find the start and end node which should be the unbalanced nodes
-        """
-        indegree_outdegree = self.count_indegree_outdegree()
-        
-        for node in indegree_outdegree.items():
-            in_deg, out_deg = node[1][0], node[1][1]
+            nodes[node] = {"in": 0, "out": 0} #create nested dictionaries to store in and out degrees
             
-            if in_deg < out_deg:
-                start = node[0]                   
+            edges = len(self.graph[node]) #The number of repeats will be the number of 
+                                                         #edges for one connected node
+            nodes[node]["out"] = edges #add the edges to one connected node to get the out degree of the current node
+            
+            #get the in edges by checking the keys in which 
+            #the node is the value for
+            for connected_nodes in self.graph.values():
+                if node in connected_nodes: #if the node is present as a value for another node, then
+                                            #the number of out edges for the other node will 
+                                            #be the number of in edges for the current node
+                    nodes[node]["in"] += connected_nodes.count(node) #Sum all in edges to get the in degree of the current node
                     
-        return start
-    
-    def dfs(self):
-        """
-        Use a depth-first search algorithm to traverse each edge to a new node
-        When a stop is reached, put it in the list and go back to a node that has edges 
-        not yet travered
-        """
-        
-        node = self.get_nodes()  
-        edge_count = self.count_indegree_outdegree()
-        graph, nodes = self.create_adj_matrix()
-        
-        path = list()
-        
-        def traversal(node):
-            #while there still are unused bridges 
-            while edge_count[node][1] != 0: 
-                
-                
-                row = nodes.index(node) #get the row index from the kmer dictionary                            
-                connections = np.where(graph[row] > 0)   # find the indices where the values is larger than 0
-                                                         # These are the unused edges
-                                                         
-                connected_node = random.choice(connections[0]) #pick a random node to traverse to
-                
-                #remove the the edge connecting the two nodes in the graph
-                graph[row, connected_node] -= 1
-                
-                #decrease the out degree of the node by one
-                edge_count[node][1] -= 1
-                
-    
-                new_node = nodes[connected_node]
-                            
-                traversal(new_node)
-                   
-            path.append(node)   
+        self.degrees = nodes  
 
-        traversal(node)    
-        
     
+    
+    def __get_nodes(self):
+        """
+            If an eulerian trail is present, then we have one node with:
+                
+            * outdegree - indegree = 1 (start) and one with
+            * indegree - outdegree = 1 (end)
+        
+            If instead we have an eulerian cycle, all nodes are balanced:  outdegree = indegree
+            Then start at a random node
+        """
+        #create two sets to store the potential start and end node
+        start = dict() 
+        end = dict()
+        
+        self.__count_edges()
+        
+        for node, degrees in self.degrees.items():  #start by looping through the in and out degree
+            diff = degrees["out"] - degrees["in"] #check the difference
+            if diff == 1: #if 1, we have a start node as the out degree is larger
+                return node, self.graph[node]
+            elif diff == -1: #if -1, we have a higher in degree than out, meaning it is a end node
+                end[node] = self.graph[node]
+        
+        #if the sets start and end have length 1, we have a eulerian trial, then get the start node
+        if len(start) == 1 and len(end) == 1:
+            return start #get the string value
+        
+        #if all nodes are balanced, then choose one at random to return as we do not know the start
+        #for an eulerian cycle
+        elif len(start) == 0 and len(end) == 0:
+            node = random.choice(list(self.degrees.edge_count.keys()) )
+            return node, self.graph[node]         
+    
+            
+    def __traversal(self):
+         """
+         Form a cycle Cycle by randomly walking in Graph
+         """
+         #Put all edges into the unvisited edges:
+         self.__create_graph()
+         unvisited = self.graph.copy()
+              
+         #assign the start node
+         start_node, value = self.__get_nodes()
+         
+         
+         #The get a random neighbor to the start node
+         node = random.choice(value)
+         
+         #assign the first node to the path/cycle depending on the of all nodes are balanced
+         cycle = [start_node, value[unvisited[start_node].index(node)]]
+         
+         
+         unvisited[start_node].pop(unvisited[start_node].index(node)) #pop chosen connected node
+
+         if len(value) == 1: #if the node only has one edge, we will set it as explored. Thus, we remove it from our unvisited list
+             unvisited.pop(start_node)
+             
+         #While there are unvisited edges in graph:
+         while unvisited:
+              #Check if the last node in the cycle still is present in the unvisited graph:
+              if cycle[-1] in unvisited:
+                   neighbors = unvisited.pop(cycle[-1]) #if so remove the last node
+                   if len(neighbors) > 0: #check if the last node has any connected nodes
+                        if len(neighbors) > 1:  #if more than one edge
+                             #Put back the remaining unvisited edges:
+                             unvisited[cycle[-1]] = neighbors[1:]       
+                             
+                        #Add the connected node whatever there only is one node or multiple connected nodes
+                        cycle.append(neighbors[0])
+    
+              #If the last node in the cycle does not have any remaining edges.
+              #This is only applicable if we have an euileran cycle
+              else:                   
+                   for i in range(len(cycle)): #iterate over the nodes in the path
+                        if cycle[i] in unvisited: #when we find one node with unvisited nodes, get the connected nodes
+                             neighbors = unvisited.pop(cycle[i]) #get the connected nodes from the graph
+                             if len(neighbors) > 0: #check how many edges there are
+                             
+                                  cycle = cycle[:i] + cycle[i:] #this is needed if we have a cycle instead of a path
+                                  if len(neighbors) > 1: #if more than one edge
+                                       #Put back the remaining unvisited edges:
+                                       unvisited[cycle[-1]] = neighbors[1:]
+                                  #Add the connected node whatever there only is one node or multiple connected nodes
+                                  cycle.append(neighbors[0])
+                             break #break the for loop and start over at the last node
+    
+         return cycle
 
         
-        return path[::-1]      
-    
-    
-    def get_sequence(self):
-        sequence = ""
+    def assemble(self):
+        """
+        Takes kthe eulerian path/cycle and assembles it
+        """
+           
+        c = self.__traversal()
+        
+        sequence = "" # and add to the sequence and set the first to false
         first = True
-        
-        path = self.dfs()
-        
-        for node in path:
-            if first:
-                sequence += node
+        #Missing step:  convert the cycle c into the sequence:
+        for node in c: #iterate through the path list
+               
+            if first: #check for the first element 
+                sequence += node # and add to the sequence and set the first to false
                 first = False
-            else:    
-                sequence += node[-1]
+            else: #Add only the last character of all the other nodes that are not the first
+                sequence += node[-1]  
                 
+
         return(sequence)
     
+
 
 def main():
     """
     When called as main, get the input of 
     """
-    
+   
     #create a parser for the command line
     parser = argparse.ArgumentParser(usage="""%(prog)s python dbgAssembler.py <sequence> -k <kmer_size> [optional] \nType -h/--help for the help message""",
-                                 description="This program takes a dna string as input and breaks it to kmers of size k. Then reassembles the string using a De Bruijn graph styled manner")
+                                description="This program takes a dna string as input and breaks it to kmers of size k. Then reassembles the string using a De Bruijn graph styled manner")
+   
     
-    #create arguments for inputs: sequence and k
+    #create arguments for inputs: sequence, file and k
     parser.add_argument("-i", metavar='<input_sequence>', type=str,  help="a DNA string", default=None)
         
-    #create arguments for inputs: sequence and k
     parser.add_argument("-f", metavar='<fasta_file>',  help="path to fasta file", default=None)
     
     parser.add_argument("-k",  metavar='<kmer_size>', type=int, help="kmer size (default 1/3 of the sequence length, max: 256)")
@@ -283,26 +354,10 @@ def main():
 
 
 
-
-
 if __name__ == "__main__":
     """
     If the script is run as main
     """
     main()
     
-  #  test_seq = "ACTGACGTACGTACGTGTG"
-   # my_graph = DbgSolver(test_seq, 4) 
-    #my_graph.create_graph()
-   # my_graph.get_nodes()
-    
-   # adj_m, ind_m = my_graph.create_adj_matrix()
-   # adj_m
-   # ind_m
-    
-    
-   # new_seq = my_graph.get_sequence()
-    
-   # print(new_seq)    
-   # print(test_seq)
-   # print(new_seq == test_seq)
+
