@@ -11,17 +11,6 @@ import re
 #script for reading fasta files
 
 
-class Error(Exception):
-    """Base class for other exceptions"""
-    pass
-
-class WrongFormat(Error):
-    """Raised when the input is in wrong format"""
-    pass
-
-
-
-
 def check_valid_sequence(fasta_line, seq_type = "DNA", isAligned = False):
     seq_type = seq_type.upper()
     valid_fasta = True
