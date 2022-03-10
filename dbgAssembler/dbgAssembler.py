@@ -31,9 +31,10 @@ Usage:
 
 
 from check_valid_sequence import check_valid_sequence
-from check_valid_sequence import WrongFormat
+from readfastafiles import readFasta_returnDict
 import random
 import numpy as np
+import argparse
 
 
 class DbgSolver:
@@ -46,7 +47,7 @@ class DbgSolver:
         """
         
         if not check_valid_sequence(sequence):
-            raise WrongFormat("Error: DNA sequence contains ambiguous characters")
+            raise Exception("Error: DNA sequence contains ambiguous characters")
         
         
         self.sequence = sequence
@@ -107,16 +108,16 @@ class DbgSolver:
         graph = self.create_graph() #get the intial graph
 
         adjMatrix = np.zeros([len(graph.keys()),len(graph.keys())], dtype=int)
-        node_index = dict()
-        for i, node in enumerate(list(graph.keys())):
-            node_index[node] = i
+        node_index = list()
+        for i in list(graph.keys()):
+            node_index.append(i)
             
         
         for i in list(graph.keys()):
-            row = node_index[i]
+            row = node_index.index(i)
         
             for j in graph[i]:
-                col = node_index[j]
+                col = node_index.index(j)
                 adjMatrix[row,col] +=1
                 
         return adjMatrix, node_index
@@ -128,10 +129,10 @@ class DbgSolver:
 
         adj_matrix, nodes = self.create_adj_matrix()
         
-        in_out = dict(zip(nodes.keys(),[None]*len(nodes.keys())))
+        in_out = dict(zip(nodes, [None]*len(nodes)))
 
         adj_matrix = np.array(adj_matrix)
-        for key, i in zip(nodes.keys(), range(adj_matrix.shape[0])):    
+        for key, i in zip(nodes, range(adj_matrix.shape[0])):    
             in_degrees = sum(adj_matrix.T[i])
             out_degrees = sum(adj_matrix[i])
             in_out[key] = [in_degrees, out_degrees]
@@ -166,13 +167,13 @@ class DbgSolver:
         
         path = list()
         
-        #function to traverse the graph
         def traversal(node):
             #while there still are unused bridges 
             while edge_count[node][1] != 0: 
-                row = nodes[node] #get the row index from the kmer dictionary
-                                
-                connections = np.where(graph[row] > 0)   # find the indices where the values is over 0
+                
+                           
+                row = nodes.index(node) #get the row index from the kmer dictionary                            
+                connections = np.where(graph[row] > 0)   # find the indices where the values is larger than 0
                                                          # These are the unused edges
                                                          
                 connected_node = random.choice(connections[0]) #pick a random node to traverse to
@@ -183,16 +184,19 @@ class DbgSolver:
                 #decrease the out degree of the node by one
                 edge_count[node][1] -= 1
                 
-                #To get the node in 
-                for key, value in nodes.items():
-                    if value == connected_node:
-                        new_node = key
-                        
-                traversal(new_node)
-               
-            path.append(node)                 
     
-        traversal(node)
+                new_node = nodes[connected_node]
+                            
+                traversal(new_node)
+                   
+            path.append(node)   
+
+        traversal(node)    
+        
+        print(graph)
+        print(edge_count)
+    
+
         
         return path[::-1]      
     
@@ -213,13 +217,28 @@ class DbgSolver:
         return(sequence)
     
 
+def main():
+    
+
+
+
+
+
 if __name__ == "__main__":
     """
     If the script is run as main
     """
+    adv_test = readFasta_returnDict()
+    
     test_seq = "ACTGACGTACGTACGTGTG"
     my_graph = DbgSolver(test_seq, 4) 
     my_graph.create_graph()
+    my_graph.get_nodes()
+    
+    adj_m, ind_m = my_graph.create_adj_matrix()
+    adj_m
+    ind_m
+    
     
     new_seq = my_graph.get_sequence()
     
