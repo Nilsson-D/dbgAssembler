@@ -48,8 +48,10 @@ Usage:
 import random #enables random choice of edge traversal
 import argparse #enables user input
 from check_valid_sequence import check_valid_sequence #to check for correct input
+from readfastafiles import readFasta_returnDict
 
-class DbgGraph:
+
+class DbgSolver:
     """
     class to create kmers of length k from a DNA sequence, create De Bruijn graph using 
     k-1 mers, and reconstruction of the DNA sequence, by finding a eulerian path
@@ -278,51 +280,70 @@ class DbgGraph:
 
 
 def main():
-    """
-    When called as main, get the input of 
-    """
-    
-    #create a parser for the command line
-    parser = argparse.ArgumentParser(usage="""%(prog)s python dbgAssembler.py <sequence> -k <kmer_size> [optional] \nType -h/--help for the help message""",
-                                 description="This program takes a dna string as input and breaks it to kmers of size k. Then reassembles the string using a De Bruijn graph styled manner")
-    
-    #create arguments for inputs: sequence and k
-    parser.add_argument("i", metavar='<input_sequence>', type=str,  help="a DNA string")
-    
-    parser.add_argument("-k",  metavar='<kmer_size>', type=int, help="kmer size (default 1/3 of the sequence length, max: 256)")
-    
-    #assign the parsed input to a variable
-    args = parser.parse_args()
-    
-    #assign each input to a new variable
-    sequence = args.i
-    k = args.k 
-    
-    #check if k is specified and create a DbgGraph object with the k or without if not specified 
-    if k: 
-        graph = DbgGraph(sequence, k)
-    else:
-       graph = DbgGraph(sequence) 
-    
-    
-    #get the reconstructed sequence and print the sequence to standard output
-    new_seq = graph.get_sequence()
-    print(f"\nReassembly: {new_seq}")
-    
-    #Tell the user if the reassembly was succesful or not by comparing 
-    #the input sequence with the reconstructed
-    print(f"Successful assembly: {sequence == new_seq}")
+   """
+   When called as main, get the input of 
+   """
+   
+   #create a parser for the command line
+   parser = argparse.ArgumentParser(usage="""%(prog)s python dbgAssembler.py <sequence> -k <kmer_size> [optional] \nType -h/--help for the help message""",
+                                description="This program takes a dna string as input and breaks it to kmers of size k. Then reassembles the string using a De Bruijn graph styled manner")
+   
+   #create arguments for inputs: sequence and k
+   parser.add_argument("-i", metavar='<input_sequence>', type=str,  help="a DNA string", default=None)
+       
+   #create arguments for inputs: sequence and k
+   parser.add_argument("-f", metavar='<fasta_file>',  help="path to fasta file", default=None)
+   
+   parser.add_argument("-k",  metavar='<kmer_size>', type=int, help="kmer size (default 1/3 of the sequence length, max: 256)")
+   
+   #assign the parsed input to a variable
+   args = parser.parse_args()
+   
+   #assign each input to a new variable
+   sequence = args.i
+   fasta_file = args.f
+   k = args.k 
+   
+   if not sequence and not fasta_file:
+       raise Exception("Only one of -i and -f can be specified at a time")
+   
+   
+   if fasta_file != None :
+       if  Path(fasta_file).is_file():    
+             adv_test = readFasta_returnDict(fasta_file)
+             
+             #get the sequences:
+             sequences = "" 
+             
+             for seq in adv_test.values():
+                 sequences += seq
+             #call the DgbSolver
+             if k: 
+                 graph = DbgSolver(sequences, k)
+             else:
+                graph = DbgSolver(sequences)  
+          
+       else:
+           raise Exception(f"Error: {fasta_file} is not a file or does not exist")
+       
+   #check if k is specified and create a DbgGraph object with the k or without if not specified 
+   elif k: 
+       graph = DbgSolver(sequence, k)
+   else:
+      graph = DbgSolver(sequence) 
+   
+   
+   #get the reconstructed sequence and print the sequence to standard output
+   new_seq = graph.get_sequence()
+  # print(f"\nReassembly: {new_seq}")
+   
+   #Tell the user if the reassembly was succesful or not by comparing 
+   #the input sequence with the reconstructed
+   print(f"Successful assembly: {sequence == new_seq}")
     
 
 if __name__ == "__main__":
     """
     If the script is run as main script
     """    
-    #main() #call main
-   
-    sequence = "ACGATCGATCGGTACGTAGCTAGCTAGCTGACTAGCAT"
-    k = 5
-    
-    solver = DbgGraph(sequence, k)
-    graph = solver.create_graph()
-    solver.get_sequence()
+    main() #call main
