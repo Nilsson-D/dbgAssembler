@@ -32,10 +32,12 @@ Usage:
 
 from check_valid_sequence import check_valid_sequence
 from readfastafiles import readFasta_returnDict
+
+
+from pathlib import Path
 import random
 import numpy as np
 import argparse
-
 
 class DbgSolver:
     """
@@ -171,7 +173,7 @@ class DbgSolver:
             #while there still are unused bridges 
             while edge_count[node][1] != 0: 
                 
-                           
+                
                 row = nodes.index(node) #get the row index from the kmer dictionary                            
                 connections = np.where(graph[row] > 0)   # find the indices where the values is larger than 0
                                                          # These are the unused edges
@@ -193,8 +195,6 @@ class DbgSolver:
 
         traversal(node)    
         
-        print(graph)
-        print(edge_count)
     
 
         
@@ -218,6 +218,67 @@ class DbgSolver:
     
 
 def main():
+    """
+    When called as main, get the input of 
+    """
+    
+    #create a parser for the command line
+    parser = argparse.ArgumentParser(usage="""%(prog)s python dbgAssembler.py <sequence> -k <kmer_size> [optional] \nType -h/--help for the help message""",
+                                 description="This program takes a dna string as input and breaks it to kmers of size k. Then reassembles the string using a De Bruijn graph styled manner")
+    
+    #create arguments for inputs: sequence and k
+    parser.add_argument("-i", metavar='<input_sequence>', type=str,  help="a DNA string", default=None)
+        
+    #create arguments for inputs: sequence and k
+    parser.add_argument("-f", metavar='<fasta_file>',  help="path to fasta file", default=None)
+    
+    parser.add_argument("-k",  metavar='<kmer_size>', type=int, help="kmer size (default 1/3 of the sequence length, max: 256)")
+    
+    #assign the parsed input to a variable
+    args = parser.parse_args()
+    
+    #assign each input to a new variable
+    sequence = args.i
+    fasta_file = args.f
+    k = args.k 
+    
+    if not sequence and not fasta_file:
+        raise Exception("Only one of -i and -f can be specified at a time")
+    
+    
+    if fasta_file != None :
+        if  Path(fasta_file).is_file():    
+              adv_test = readFasta_returnDict(fasta_file)
+              
+              #get the sequences:
+              sequences = "" 
+              
+              for seq in adv_test.values():
+                  sequences += seq
+              #call the DgbSolver
+              if k: 
+                  graph = DbgSolver(sequences, k)
+              else:
+                 graph = DbgSolver(sequences)  
+           
+        else:
+            raise Exception(f"Error: {fasta_file} is not a file or does not exist")
+        
+    #check if k is specified and create a DbgGraph object with the k or without if not specified 
+    elif k: 
+        graph = DbgSolver(sequence, k)
+    else:
+       graph = DbgSolver(sequence) 
+    
+    
+    #get the reconstructed sequence and print the sequence to standard output
+    new_seq = graph.get_sequence()
+   # print(f"\nReassembly: {new_seq}")
+    
+    #Tell the user if the reassembly was succesful or not by comparing 
+    #the input sequence with the reconstructed
+    print(f"Successful assembly: {sequence == new_seq}")
+    
     
 
 
@@ -228,20 +289,20 @@ if __name__ == "__main__":
     """
     If the script is run as main
     """
-    adv_test = readFasta_returnDict()
+    main()
     
-    test_seq = "ACTGACGTACGTACGTGTG"
-    my_graph = DbgSolver(test_seq, 4) 
-    my_graph.create_graph()
-    my_graph.get_nodes()
+  #  test_seq = "ACTGACGTACGTACGTGTG"
+   # my_graph = DbgSolver(test_seq, 4) 
+    #my_graph.create_graph()
+   # my_graph.get_nodes()
     
-    adj_m, ind_m = my_graph.create_adj_matrix()
-    adj_m
-    ind_m
+   # adj_m, ind_m = my_graph.create_adj_matrix()
+   # adj_m
+   # ind_m
     
     
-    new_seq = my_graph.get_sequence()
+   # new_seq = my_graph.get_sequence()
     
-    print(new_seq)    
-    print(test_seq)
-    print(new_seq == test_seq)
+   # print(new_seq)    
+   # print(test_seq)
+   # print(new_seq == test_seq)

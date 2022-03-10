@@ -10,7 +10,7 @@ import sys
 from check_valid_sequence import check_valid_sequence
 #script for reading fasta files
 
-def readFasta_returnTuple(input_fasta, seq_type = "DNA", isAligned = False):
+def readFasta_returnTuple(input_fasta, seq_type = "DNA", allowN = True, isAligned = False):
     """
     
     This function takes a FASTA file as input and stores the ids in one list and
@@ -62,7 +62,7 @@ def readFasta_returnTuple(input_fasta, seq_type = "DNA", isAligned = False):
             else: #if the line does not start with a '>'
                 
                 #Checking if the DNA sequence is valid
-                if check_valid_sequence(fasta_line, seq_type , isAligned): #if any other character than ACGT is found
+                if not check_valid_sequence(fasta_line, seq_type, allowN, isAligned): #if any other character than ACGT is found
                     print(f"\nError: Specified file: '{input_fasta}' contains invalid characters") #print not valid DNA format
                     sys.exit() #exit 
                     
@@ -93,7 +93,7 @@ def readFasta_returnTuple(input_fasta, seq_type = "DNA", isAligned = False):
 
 
 
-def readFasta_returnDict(input_fasta, seq_type = "DNA", isAligned = False):    
+def readFasta_returnDict(input_fasta, seq_type = "DNA", allowN = True, isAligned = False):    
     """
     This function takes a fasta file (DNA) and write the ids and sequences
     to a dictionary, where the keys are the ids and the values are the
@@ -142,7 +142,7 @@ def readFasta_returnDict(input_fasta, seq_type = "DNA", isAligned = False):
                   #This means that the line is a sequence
                   
                 #Check if the  DNA sequence is valid an only has the characters -ACTGactg
-                if check_valid_sequence(line, seq_type , isAligned): #if any other character than -ACTGactg is found
+                if not check_valid_sequence(line, seq_type, allowN, isAligned): #if any other character than -ACTGactg is found
                     print(f"""\nError: Specified file: '{input_fasta}' contains invalid characters in sequence with the id '{header}'
                           """) #print invalid DNA format
                     sys.exit() #exit 
