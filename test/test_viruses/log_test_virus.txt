@@ -1,0 +1,24 @@
+Input genome: NC_045512.2 Severe acute respiratory syndrome coronavirus 2 isolate Wuhan-Hu-1, complete genome 
+Genome size: 29903 
+kmer size used: 200 
+Poportion of sequence assembled correctly: 100.0%
+Execution time: 35.3178 
+
+Input genome: NC_012959.1 Human adenovirus 54, complete genome 
+Genome size: 34920 
+kmer size used: 200 
+Poportion of sequence assembled correctly: 100.0%
+Execution time: 48.5535 
+
+Input genome: NC_027779.1 Human papillomavirus isolate SE379, complete genome 
+Genome size: 7320 
+kmer size used: 200 
+Poportion of sequence assembled correctly: 100.0%
+Execution time: 1.2467 
+
+Input genome: NC_007605.1 Human gammaherpesvirus 4, complete genome 
+Genome size: 171823 
+kmer size used: 200 
+Poportion of sequence assembled correctly: 99.34409246724827%
+Execution time: 932.3635 
+
