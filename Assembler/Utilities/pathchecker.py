@@ -38,8 +38,8 @@ def check_path_overwrite(path):
     if path.exists() and path.is_file():
          
          #If file exists. Ask for premission to overwrite the file
-          usr_input_overwrite = input("\nSpecified output file does already exist." + "\n" +
-                                 "Do you want to overwrite it? (y/n): ")
+          usr_input_overwrite = input("\nSpecified output file already exists." + "\n" +
+                                 "Do you wish to overwrite it? (y/n): ")
         
           #Based on user answer, set excecute_script to True or False
           if usr_input_overwrite == "y": #if y is chosen the set 
@@ -50,7 +50,23 @@ def check_path_overwrite(path):
                 
           else: #if something else than y or n then set excecute_script to False
               excecute_script = False 
+
+    #check if path does exist and if it is a file
+    if path.exists() and path.is_dir():
+        #If file exists. Ask for premission to overwrite the file
+         usr_input_overwrite = input("\nSpecified output directory already exists." + "\n" +
+                                "Do you wish to overwrite it? (y/n): ")
+         
+         #Based on user answer, set excecute_script to True or False
+         if usr_input_overwrite == "y": #if y is chosen the set 
+             excecute_script = True     #excecute_script to True
+                 
+         elif usr_input_overwrite == "n": #if n is chosen the set 
+             excecute_script = False      #excecute_script to False
               
+         else: #if something else than y or n then set excecute_script to False
+             excecute_script = False 
+        
     #If the file does not exist, return True       
     else:
        excecute_script = True
@@ -60,12 +76,9 @@ def check_path_overwrite(path):
 
 
 
-def createDirs(filename):
+def createDirs(name):
     """
-    This first function only does one thing. That is to strip the file name of the path that should be created.
-    If this were to be done in the function loopDirs(), there would be a problem with removing a path each recursion.
-    This would cause directories to be missed. This is solved by wrapping the inner function by an additional function so the command 
-    for removing the file name is only done once.   
+    Function to create directories
     """
 
     def loopDirs(path):
@@ -98,7 +111,7 @@ def createDirs(filename):
            
         return path #returns new output path
     
-    loopDirs(Path(filename).parent) #strip the file name before calling the loopDirs() to create the path (directories) to the output file
+    loopDirs(Path(name)) #strip the file name before calling the loopDirs() to create the path (directories) to the output file
     
 
 

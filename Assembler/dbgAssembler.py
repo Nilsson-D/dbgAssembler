@@ -43,18 +43,18 @@ Usage:
     python dbgAssembler.py <sequence> -k <kmer_size> [optional]
 
 """
-import sys
-from pathlib import Path
+import sys #to append current path
+from pathlib import Path #check existing path
 import random #enables random choice of edge traversal
 import argparse #enables user input
-from difflib import SequenceMatcher
+from difflib import SequenceMatcher #to compare output and input sequence
+from datetime import date #to get the date
 sys.path.append(".")
 
 
 from Assembler.Utilities.check_valid_sequence import check_valid_sequence #to check for correct input
-from Assembler.Utilities.readfastafiles import readFasta_returnDict
-
-
+from Assembler.Utilities.readfastafiles import readFasta_returnDict #to read in fasta file
+from Assembler.Utilities.output_manager import output_results #to write result to a file
 
 class DbgSolver:
     """
@@ -285,10 +285,13 @@ def main():
     """
     When called as main, get the input of 
     """
-   
+    today = date.today()
+    current_date = today.strftime("%d_%m_%Y")
+    output = f"dbgAssembler_run_{current_date}.fna"
+    directory = f"dbgAssembler_{current_date}"
     #create a parser for the command line
-    parser = argparse.ArgumentParser(usage="""%(prog)s python dbgAssembler.py <sequence> -k <kmer_size> [optional] \nType -h/--help for the help message""",
-                                description="This program takes a dna string as input and breaks it to kmers of size k. Then reassembles the string using a De Bruijn graph styled manner")
+    parser = argparse.ArgumentParser(usage="""%(prog)s python dbgAssembler.py -i <sequence> -f <fasta_file> -k <kmer_size> [optional] -o <output_file> [optional] - \nType -h/--help for the help message""",
+                                description="This program takes a dna string or a fasta file as input and breaks the sequence into kmers of size k. Then reassembles the string using a De Bruijn graph approach")
    
     
     #create arguments for inputs: sequence, file and k
@@ -298,6 +301,10 @@ def main():
     
     parser.add_argument("-k",  metavar='<kmer_size>', type=int, help="kmer size (default 1/3 of the sequence length, max: 256)")
     
+    parser.add_argument("-o", metavar='<output_file>', type=str,  help="path to outputfile, default: dbgAssembler_run{current_date}.txt", default=output)
+    
+    parser.add_argument("-d", metavar='<output_file>', type=str,  help="name of output directory to create, default: dbgAssembler_{current_date}", default=directory)
+    
     #assign the parsed input to a variable
     args = parser.parse_args()
     
@@ -305,26 +312,29 @@ def main():
     sequence = args.i
     fasta_file = args.f
     k = args.k 
+    output = args.o 
+    directory = args.d
+    
     
     if sequence and fasta_file:
         raise Exception("Only one of -i and -f can be specified at a time")
     
     
-    elif fasta_file != None:
+    elif fasta_file:
         if  Path(fasta_file).is_file():    
-              adv_test = readFasta_returnDict(fasta_file)
+              fasta = readFasta_returnDict(fasta_file)
               
               #get the sequences:
               sequences = "" 
               
-              for seq in adv_test.values():
+              for seq in fasta.values():
                   sequences += seq
               #call the DgbSolver
               if k: 
                   graph = DbgSolver(sequences, k)
               else:
                  graph = DbgSolver(sequences)  
-           
+            
         else:
             raise Exception(f"Error: {fasta_file} is not a file or does not exist")
     
@@ -342,11 +352,25 @@ def main():
     #get the reconstructed sequence and print the sequence to standard output
     new_seq = graph.assemble()
     
-    portion_correct = 100*SequenceMatcher(None, new_seq, sequences).ratio()
+    
+    
     #Tell the user if the reassembly was succesful or not by comparing 
     #the input sequence with the reconstructed
-    print(f"Portion correctly assembled sequence: {portion_correct}%")
-    
+    #write to output file
+    if not sequence and fasta_file:
+        poportion_correct = 100*SequenceMatcher(None, new_seq, sequences).ratio()
+        if directory:      
+            output_results(fasta_file, graph.k, new_seq, poportion_correct, output, directory)
+        else:
+            output_results(fasta_file, graph.k, new_seq, poportion_correct, output)
+        
+    elif sequence and not fasta_file:
+        poportion_correct = 100*SequenceMatcher(None, new_seq, sequence).ratio()
+        
+        if directory:
+            output_results(sequence, graph.k, new_seq, poportion_correct, output, directory, onlySeq = True)       
+        else:
+            output_results(sequence, graph.k, new_seq, poportion_correct, output, onlySeq = True)
     
 
 
