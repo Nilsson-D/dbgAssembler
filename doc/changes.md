@@ -11,23 +11,18 @@ Three different structures were tried:
     - Each repeat was displayed as multiple elements in a list for outgoing edges of a node
       - Ex {ATG:[TGC, TCG]} The node ATG has two out going edges connected to the node TGC
 
-The two first alternatives were implemented with a recursive function. This did not work for longer sequences. Third alternative implemented without a recursive function and had a eaiser implementation
+The two first alternatives were implemented with a recursive function. This did not work for longer sequences as maximum recursion depth was exceeded. Possible solution: increase recursion limit.
+
+Third alternative implemented without a recursive function and had a eaiser implementation
 to follow. Thus, the third alternative was chosen.
+
+Last change, changed path walking to be completly random. Compressed the code and
+no recursive func is used.
+ * Test on genome size 5kb gives a 100% correct assembly
+ * Test on 170 kb gives a ~96% correct assembly
 
 #### Eulerian path/cycle
 To do:
-  * Change choice of node to be random in the loop
-    - Do this by sample a random node
-    - get the index of the node and slice the list to exclude the chosen node.
-      - obs! Do not remove from graph, this changes the graph for later iterations
-
   * Create a script to compare larger output
-    - map func?
-    - regular expression iter with set to check index?
-
-  * Create threading if possible
-
-  * Fix test script import
-  * Create advanced test script for larger sequences
-  * Create test script for visualization
-  * Correct the format checker
+  * Create a Utility file for writing output to a separate folder
+  * Create a test script for genome files <= 20 kb
