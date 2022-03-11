@@ -35,6 +35,8 @@ def check_valid_sequence(fasta_line, seq_type = "DNA", allowN = True, isAligned 
     seq_type = seq_type.upper() #seq_type to uppercase so this wont create a problem
     valid_fasta = True #create a boolean to return whatever the string/sequence has valid characters
     
+    if fasta_line == None:
+        return valid_fasta
     
     if seq_type == "DNA": #if DNA is specified
         #check whatever the sequence is from an alignment
@@ -49,10 +51,8 @@ def check_valid_sequence(fasta_line, seq_type = "DNA", allowN = True, isAligned 
             else:
                 valid_fasta_chrs = r"[^ACGT]+"
         
-        if fasta_line == None:
-            fasta_line = ""
         #search for all characters except valid_fasta_chrs    
-        result = re.findall(valid_fasta_chrs, fasta_line.strip(), re.IGNORECASE) #ignore case when searching
+        result = re.findall(valid_fasta_chrs, fasta_line, re.IGNORECASE) #ignore case when searching
         if result:
             valid_fasta = False #return true if any other chr is found
             
@@ -60,9 +60,15 @@ def check_valid_sequence(fasta_line, seq_type = "DNA", allowN = True, isAligned 
     elif seq_type == "PROTEIN":  #if protein is specified
     #check whatever the sequence is from an alignment
         if isAligned: 
-            valid_fasta_chrs = r"[^ABCDEFGHIJKLMNOPQRSTUVWYZX*-]+"
+            if allowN:
+                valid_fasta_chrs = r"[^NABCDEFGHIJKLMNOPQRSTUVWYZX*-]+"
+            else:
+                valid_fasta_chrs = r"[^ABCDEFGHIJKLMNOPQRSTUVWYZX*-]+"
         else:
-            valid_fasta_chrs = r"[^ABCDEFGHIJKLMNOPQRSTUVWYZX*]+"
+            if allowN:
+                valid_fasta_chrs = r"[^NABCDEFGHIJKLMNOPQRSTUVWYZX*]+"
+            else:
+                valid_fasta_chrs = r"[^ABCDEFGHIJKLMNOPQRSTUVWYZX*]+"
             
         #search for all characters except valid_fasta_chrs    
         result = re.findall(valid_fasta_chrs, fasta_line.strip(), re.IGNORECASE) #ignore case when searching
@@ -72,10 +78,17 @@ def check_valid_sequence(fasta_line, seq_type = "DNA", allowN = True, isAligned 
     
     elif seq_type == "RNA": #if RNA is specified
         #check whatever the sequence is from an alignment
-        if isAligned:         
-            valid_fasta_chrs = r"[^ACGU-]+"
+        if isAligned:    
+            if allowN:
+                valid_fasta_chrs = r"[^NACGU-]+"
+            else:
+                valid_fasta_chrs = r"[^ACGU-]+"
+                
         else:
-            valid_fasta_chrs = r"[^ACGU]+"
+            if allowN:
+                valid_fasta_chrs = r"[^NACGU]+"
+            else:
+                valid_fasta_chrs = r"[^ACGU]+"
             
         #search for all characters except valid_fasta_chrs
         result = re.findall(valid_fasta_chrs, fasta_line.strip(), re.IGNORECASE) #ignore case when searching

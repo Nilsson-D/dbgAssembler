@@ -1,13 +1,24 @@
 #!/usr/bin/env python3
 
 """
-Created on Thu Jan 13 09:05:31 2022
+Title: readfastafiles.py
+Created on Thur 09-03-2022
+Author: Daniel Nilsson
 
-@author: daniel
+Description:
+    Utilities for reading in a fasta file
+    * Either get a tuple containing two lists. One list containing the ids and the other containg the sequences
+    * Or create a dictionary where the key corresponds to the sequence id and the value corresponds to the sequence
+
+
+List of functions:
+    - readFasta_returnTuple   
+    - readFasta_returnDict
+    
 """
 
 import sys
-from check_valid_sequence import check_valid_sequence
+from Assembler.Utilities.check_valid_sequence import check_valid_sequence
 #script for reading fasta files
 
 def readFasta_returnTuple(input_fasta, seq_type = "DNA", allowN = True, isAligned = False):
@@ -61,6 +72,7 @@ def readFasta_returnTuple(input_fasta, seq_type = "DNA", allowN = True, isAligne
            
             else: #if the line does not start with a '>'
                 
+                fasta_line.strip()
                 #Checking if the DNA sequence is valid
                 if not check_valid_sequence(fasta_line, seq_type, allowN, isAligned): #if any other character than ACGT is found
                     print(f"\nError: Specified file: '{input_fasta}' contains invalid characters") #print not valid DNA format
@@ -140,7 +152,7 @@ def readFasta_returnDict(input_fasta, seq_type = "DNA", allowN = True, isAligned
                 
             else: #If the line does not start with a >. 
                   #This means that the line is a sequence
-                  
+                line = line.strip()
                 #Check if the  DNA sequence is valid an only has the characters -ACTGactg
                 if not check_valid_sequence(line, seq_type, allowN, isAligned): #if any other character than -ACTGactg is found
                     print(f"""\nError: Specified file: '{input_fasta}' contains invalid characters in sequence with the id '{header}'

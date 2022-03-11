@@ -1,9 +1,23 @@
 #!/usr/bin/env python3
 
 """
-Created on Sun Jan 16 20:48:09 2022
+Title: pathchecker.py
+Created on Thur 09-03-2022
+Author: Daniel Nilsson
 
-@author: daniel
+Description:
+    Utilities for handling path.
+    * Creation of directories
+    * check if a file already exists
+
+
+List of functions:
+    - check_path_overwrite   
+    - createDirs
+    
+List of "non standard" modules:
+
+
 """
 
 from pathlib import Path

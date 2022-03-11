@@ -16,7 +16,7 @@ List of functions:
 List of classes: 
     DbgGraph - functions:
         __create_kmers()
-        __create_graph()
+        create_graph()
         __count_edges()
         __get_nodes()
         traversal()
@@ -43,12 +43,16 @@ Usage:
     python dbgAssembler.py <sequence> -k <kmer_size> [optional]
 
 """
-
+import sys
 from pathlib import Path
 import random #enables random choice of edge traversal
 import argparse #enables user input
-from check_valid_sequence import check_valid_sequence #to check for correct input
-from readfastafiles import readFasta_returnDict
+from difflib import SequenceMatcher
+sys.path.append(".")
+
+
+from Assembler.Utilities.check_valid_sequence import check_valid_sequence #to check for correct input
+from Assembler.Utilities.readfastafiles import readFasta_returnDict
 
 
 
@@ -62,7 +66,7 @@ class DbgSolver:
         """
         intialize variables, k is optional
         """
-        
+        max_k = 256
         if not check_valid_sequence(sequence): #check for correct sequence input
             #raise error otherwise
             raise Exception("Error: DNA sequence contains ambiguous characters") 
@@ -76,20 +80,20 @@ class DbgSolver:
         if k > len(self.sequence): #if the specified k is longer than the length of the sequence
             k = int(len(self.sequence)/3) #then set it to be 1/3 of the sequence length
             
-            if k > 256: #set an upper limit of k to 256 
-                print("Max kmer size reached. Using size 256")
-                k=256
+            if k > max_k: #set an upper limit of k to max_k 
+                print("Max kmer size reached. Using size {max_k}")
+                k=max_k
                 
-            else: #if k is not bigger than 256
+            else: #if k is not bigger than max_k
                 print(f"kmer size cannot be longer than the sequence\n1/3 of the sequence length: {k} will instead be used")
             
-        if k > 256: #if user specified k > 256 or 1/3 of the length is > 256, set k to 256
-            print("Max kmer size set reached. Using size 256")
-            k=256
+        if k > max_k: #if user specified k > max_k or 1/3 of the length is > 256, set k to max_k
+            print(f"Max kmer size reached. Using size {max_k}")
+            k=max_k
             
         self.k = k #intialize k
         
-
+        self.graph = dict()
         
     def __create_kmers(self):
         """
@@ -145,7 +149,7 @@ class DbgSolver:
             graph[left].append(right)
             
         self.graph = graph
-    
+        
     
     def __count_edges(self):
         """
@@ -205,66 +209,46 @@ class DbgSolver:
         #if all nodes are balanced, then choose one at random to return as we do not know the start
         #for an eulerian cycle
         elif len(start) == 0 and len(end) == 0:
-            node = random.choice(list(self.degrees.edge_count.keys()) )
+            node = random.choice(list(self.degrees.keys()) )
             return node, self.graph[node]         
     
             
     def __traversal(self):
          """
-         Form a cycle Cycle by randomly walking in Graph
+         Traverse the de Bruijn graph by chosing random edges from the current node.
+         When an end is reached (a node with no outgoing edges) append the node to the and backtrack the path
          """
-         #Put all edges into the unvisited edges:
-         self.__create_graph()
-         unvisited = self.graph.copy()
-              
+
+         self.__create_graph() #create the graph
+         
+         unvisited = list() #create a list to track the nodes which have untraversed edges
+         path = list() #create a list to store the path taken through the de bruijn graph
+         
          #assign the start node
-         start_node, value = self.__get_nodes()
+         node, neighbors = self.__get_nodes()        
          
-         
-         #The get a random neighbor to the start node
-         node = random.choice(value)
-         
-         #assign the first node to the path/cycle depending on the of all nodes are balanced
-         cycle = [start_node, value[unvisited[start_node].index(node)]]
-         
-         
-         unvisited[start_node].pop(unvisited[start_node].index(node)) #pop chosen connected node
-
-         if len(value) == 1: #if the node only has one edge, we will set it as explored. Thus, we remove it from our unvisited list
-             unvisited.pop(start_node)
-             
+         unvisited.append(node)
          #While there are unvisited edges in graph:
-         while unvisited:
-              #Check if the last node in the cycle still is present in the unvisited graph:
-              if cycle[-1] in unvisited:
-                   neighbors = unvisited.pop(cycle[-1]) #if so remove the last node
-                   if len(neighbors) > 0: #check if the last node has any connected nodes
-                        if len(neighbors) > 1:  #if more than one edge
-                             #Put back the remaining unvisited edges:
-                             unvisited[cycle[-1]] = neighbors[1:]       
-                             
-                        #Add the connected node whatever there only is one node or multiple connected nodes
-                        cycle.append(neighbors[0])
-    
-              #If the last node in the cycle does not have any remaining edges.
-              #This is only applicable if we have an euileran cycle
-              else:                   
-                   for i in range(len(cycle)): #iterate over the nodes in the path
-                        if cycle[i] in unvisited: #when we find one node with unvisited nodes, get the connected nodes
-                             neighbors = unvisited.pop(cycle[i]) #get the connected nodes from the graph
-                             if len(neighbors) > 0: #check how many edges there are
-                             
-                                  cycle = cycle[:i] + cycle[i:] #this is needed if we have a cycle instead of a path
-                                  if len(neighbors) > 1: #if more than one edge
-                                       #Put back the remaining unvisited edges:
-                                       unvisited[cycle[-1]] = neighbors[1:]
-                                  #Add the connected node whatever there only is one node or multiple connected nodes
-                                  cycle.append(neighbors[0])
-                             break #break the for loop and start over at the last node
-    
-         return cycle
-
-        
+         while unvisited: #while there still is untraversed nodes
+              node = unvisited[-1] #assign the last element in the unvisited list to be the next node
+              neighbors = self.graph[node] #get the neighbors
+              if self.degrees[node]["out"] == 0: #if the out degree is 0, we have reached an end
+                  path.append(node) #append the node to the path (starting from the last node)
+                  unvisited.pop(-1) #remove the node from the unvisited list
+                  
+  
+              #if there still is remaning edges
+              else:
+                  self.degrees[node]["out"] -= 1 #remove one from the total count of outgoing edge
+                  next_node = random.choice(neighbors) #get one random node from the neighbors
+                  self.graph[node].remove(next_node)  #remove the chosen neighbors from the current node
+                  unvisited.append(next_node) #add the next node to the  unvisited list as this will be the next starting point
+                   
+            
+                    
+         return path[::-1] #revrese the order of the path as the order in which the element have been added are in the reverse order (backtracking)
+       
+ 
     def assemble(self):
         """
         Takes kthe eulerian path/cycle and assembles it
@@ -286,7 +270,16 @@ class DbgSolver:
 
         return(sequence)
     
-
+    
+    def get_dbg(self):
+        """
+        if the user wants the create_graph
+        """
+        if not self.graph:
+            self.__create_graph()
+            
+        return self.graph
+    
 
 def main():
     """
@@ -313,11 +306,11 @@ def main():
     fasta_file = args.f
     k = args.k 
     
-    if not sequence and not fasta_file:
+    if sequence and fasta_file:
         raise Exception("Only one of -i and -f can be specified at a time")
     
     
-    if fasta_file != None :
+    elif fasta_file != None:
         if  Path(fasta_file).is_file():    
               adv_test = readFasta_returnDict(fasta_file)
               
@@ -334,6 +327,10 @@ def main():
            
         else:
             raise Exception(f"Error: {fasta_file} is not a file or does not exist")
+    
+        
+    elif not sequence:
+        raise Exception("Error: No input specified")
         
     #check if k is specified and create a DbgGraph object with the k or without if not specified 
     elif k: 
@@ -343,12 +340,12 @@ def main():
     
     
     #get the reconstructed sequence and print the sequence to standard output
-    new_seq = graph.get_sequence()
-   # print(f"\nReassembly: {new_seq}")
+    new_seq = graph.assemble()
     
+    portion_correct = 100*SequenceMatcher(None, new_seq, sequences).ratio()
     #Tell the user if the reassembly was succesful or not by comparing 
     #the input sequence with the reconstructed
-    print(f"Successful assembly: {sequence == new_seq}")
+    print(f"Portion correctly assembled sequence: {portion_correct}%")
     
     
 
