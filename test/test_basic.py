@@ -21,8 +21,8 @@ List of "non standard" modules:
     numpy - for making input probabilities for each nucleotide poosible
    
 Procedure:
-    1. create two lists of dna sequences, one with gc-content 50% and onw with 90%
-    2. call the DbgGraph class on all the sequences and check whatever the sequences are reconstructed
+    1. Create two lists of dna sequences, one with gc-content 50% and onw with 90%
+    2. Call the DbgGraph class on all the sequences and check whatever the sequences are reconstructed
     correctly.
     3. Print to standard output the 
 
@@ -38,8 +38,9 @@ import sys
 # parent directory so it can be run in the root dir
 sys.path.append(".")
 
+
 from numpy.random import choice #import choice for creating random sequences
-from dbgAssembler import DbgGraph #import the assembler for testing
+from Assembler import DbgSolver
 
 
 def rnd_sequences(times = 10, length = 1000, bias=0.5):
@@ -88,8 +89,8 @@ failure = 0
 #Print what sequences that will be run
 print("Running sequences with GC-content: 50%")
 for run, seq in enumerate(seqs, 1): #iterate over each sequence and record the run
-    g = DbgGraph(seq) #call the class
-    new_seq = g.get_sequence() #get the reconstructed sequence 
+    g = DbgSolver(seq) #call the class
+    new_seq = g.assemble() #get the reconstructed sequence 
     
     #print some information for each run
     print(f"Run nr: {run}")
@@ -119,8 +120,8 @@ biased_failure = 0
 #Print what sequences that will be run
 print(f"Running sequences with GC-content: {100*gc}%")
 for run, seq in enumerate(biased_seqs, 1): #iterate over each sequence and record the run
-    g = DbgGraph(seq) #call the class
-    new_seq = g.get_sequence() #get the reconstructed sequence 
+    g = DbgSolver(seq) #call the class
+    new_seq = g.assemble() #get the reconstructed sequence 
     
     #print some information for each run
     print(f"Run nr: {run}")
