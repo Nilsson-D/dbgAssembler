@@ -1,0 +1,10 @@
+human corona virus
+ * NC_036584.1 Unidentified human coronavirus isolate FT1407-6/2014 spike glycprotein gene, complete cd
+ * Genbank assembly version: GCA_002889935.1
+
+human gammaherpesvirus 4
+ *
+ * 
+
+
+
