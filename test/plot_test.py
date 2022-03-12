@@ -31,7 +31,7 @@ Usage:
 
 
 # import requi9red module
-import sys #get sys to append current dir to the path
+
 from pathlib import Path #use pathlib to create a result directory
 
 #Following pages are for visualizing the de Bruijn graph
@@ -39,9 +39,6 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import pygraphviz
  
-# append the path of the
-# parent directory so it can be run in the root dir
-sys.path.append(".")
 
 #Import the script
 from Assembler import DbgSolver
@@ -51,7 +48,7 @@ k = 3 #set a value for the kmer size
 sequence = "CCAGTCAGCGGGATGTACGGGATT" #create a sequence to visualize
 
 assembler = DbgSolver(sequence, k) #Create a DbgSolver object
-dbg = assembler.get_dbg() #get the de Bruijn graph
+dbg = assembler.create_graph() #get the de Bruijn graph
 
 G = nx.MultiDiGraph(dbg) #convert to a networkx graph
 
@@ -65,8 +62,11 @@ A = nx.nx_agraph.to_agraph(G)
 A.graph_attr["label"] = f"Sequence: {sequence}, k = {k}"
 A.layout('dot')                                                                
 
+
+script_dir = Path( __file__ ).parent.absolute() #get the path to the dir where the test script is placed
+
 #Create directory and output file
-path = "./test/test_plot"
+path = f"{script_dir}/test_plot"
 filename_fig = "test_dbg_plot.png"
 
 #create directory from root if not existing
@@ -74,5 +74,5 @@ if not Path(path).exists():
     Path(path).mkdir()
 
 #draw and save the figure
-A.draw(f'test/test_plot/{filename_fig}')  
+A.draw(f'{path}/{filename_fig}')  
 

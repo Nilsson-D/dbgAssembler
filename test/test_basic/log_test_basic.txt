@@ -1,0 +1,46 @@
+GC-content: 50%, length: 5000bp
+For kmer size: 11, average poportion of correct assembly: 30.7
+For kmer size: 13, average poportion of correct assembly: 100.0
+For kmer size: 15, average poportion of correct assembly: 100.0
+For kmer size: 17, average poportion of correct assembly: 100.0
+For kmer size: 19, average poportion of correct assembly: 100.0
+For kmer size: 21, average poportion of correct assembly: 100.0
+For kmer size: 23, average poportion of correct assembly: 100.0
+For kmer size: 25, average poportion of correct assembly: 100.0
+For kmer size: 27, average poportion of correct assembly: 100.0
+For kmer size: 29, average poportion of correct assembly: 100.0
+For kmer size: 31, average poportion of correct assembly: 100.0
+For kmer size: 33, average poportion of correct assembly: 100.0
+For kmer size: 35, average poportion of correct assembly: 100.0
+For kmer size: 37, average poportion of correct assembly: 100.0
+For kmer size: 39, average poportion of correct assembly: 100.0
+For kmer size: 41, average poportion of correct assembly: 100.0
+For kmer size: 43, average poportion of correct assembly: 100.0
+For kmer size: 45, average poportion of correct assembly: 100.0
+For kmer size: 47, average poportion of correct assembly: 100.0
+For kmer size: 49, average poportion of correct assembly: 100.0
+For kmer size: 51, average poportion of correct assembly: 100.0
+
+
+GC-content: 90%, length: 5000bp
+For kmer size: 11, average poportion of correct assembly: 0.38
+For kmer size: 13, average poportion of correct assembly: 1.08
+For kmer size: 15, average poportion of correct assembly: 2.43
+For kmer size: 17, average poportion of correct assembly: 48.4
+For kmer size: 19, average poportion of correct assembly: 100.0
+For kmer size: 21, average poportion of correct assembly: 92.8
+For kmer size: 23, average poportion of correct assembly: 100.0
+For kmer size: 25, average poportion of correct assembly: 100.0
+For kmer size: 27, average poportion of correct assembly: 100.0
+For kmer size: 29, average poportion of correct assembly: 100.0
+For kmer size: 31, average poportion of correct assembly: 100.0
+For kmer size: 33, average poportion of correct assembly: 100.0
+For kmer size: 35, average poportion of correct assembly: 100.0
+For kmer size: 37, average poportion of correct assembly: 100.0
+For kmer size: 39, average poportion of correct assembly: 100.0
+For kmer size: 41, average poportion of correct assembly: 100.0
+For kmer size: 43, average poportion of correct assembly: 100.0
+For kmer size: 45, average poportion of correct assembly: 100.0
+For kmer size: 47, average poportion of correct assembly: 100.0
+For kmer size: 49, average poportion of correct assembly: 100.0
+For kmer size: 51, average poportion of correct assembly: 100.0

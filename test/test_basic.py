@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 """
-Title: test.py
+Title: test_basic.py
 Created on Wen 09-03-2022
 Author: Daniel Nilsson
 
 Description:
     A test script for dbgAssembler.py
-    Generates 10 DNA sequences with length 1000 for de- and reconstruction.
+    Generates 10 DNA sequences with length 10000 for de- and reconstruction.
     The DNA strings are used as input to the dbgAssembler class. 
     It will test the assembler on both unbiased sequences (all nucleotides are random)
     and on biased sequences (e.i higher GC-content).
@@ -15,10 +15,11 @@ Description:
 
 List of functions:
     rnd_sequences
-    biased_sequences
+    
     
 List of "non standard" modules:
     numpy - for making input probabilities for each nucleotide poosible
+    SequenceMatcher
    
 Procedure:
     1. Create two lists of dna sequences, one with gc-content 50% and onw with 90%
@@ -27,23 +28,18 @@ Procedure:
     3. Print to standard output the 
 
 Usage:
-    python test.py 
+    python test_basic.py 
+    
 """
-
-
-# import required module
-import sys
-  
-# append the path of the
-# parent directory so it can be run in the root dir
-sys.path.append(".")
-
-
+from pathlib import Path #use pathlib to create a result directory
+from difflib import SequenceMatcher #to compare output and input sequence
 from numpy.random import choice #import choice for creating random sequences
+
+
 from Assembler import DbgSolver
 
 
-def rnd_sequences(times = 10, length = 1000, bias=0.5):
+def rnd_sequences(times, length, bias=0.5):
     """
     Create >times> number of sequences with length >length> and with a gc-content of <bias>
     First create the probabilities and then loop <times> times and create the sequences
@@ -78,63 +74,114 @@ if __name__ == "__main__":
     """
     If the script is run as main script
     """
-
-
+length = 5000
+times = 10
+ks = [x for x in range(11,53,2)] #create kmer sizes
 #generate unbiased sequences     
-seqs = rnd_sequences()
+unbiased_seqs = rnd_sequences(times, length)
 
-#create variables for counting the failed and successful assemblies
-correct = 0
-failure = 0
+poportion_unbiased = dict() #to store the stats of the assembly  
+result_unbiased_seqs = list() #to store the resulting sequences
+
 #Print what sequences that will be run
-print("Running sequences with GC-content: 50%")
-for run, seq in enumerate(seqs, 1): #iterate over each sequence and record the run
-    g = DbgSolver(seq) #call the class
-    new_seq = g.assemble() #get the reconstructed sequence 
-    
-    #print some information for each run
-    print(f"Run nr: {run}")
-    print(f"Input sequence: {seq} \n\nOutput sequence: {new_seq}")
-    print(f"Correct assembly: {new_seq == seq}\n-----------------------------------------------------------\n")
-    
-    #count the failed and successful assemblies 
-    if new_seq == seq:
-        correct += 1 
-    else:
-        failure += 1
-        
-      
+print("Running sequences with GC-content: 50% \n\n")
 
-print("\n\n\n\n\n\n")
+for k in ks:
+    poportion_unbiased[f"{k}"] = list()
+    for run, seq in enumerate(unbiased_seqs, 1): #iterate over each sequence and record the run
+        g = DbgSolver(seq, k) #call the class
+        new_seq = g.assemble() #get the reconstructed sequence 
+        
+        result_unbiased_seqs.append(list(new_seq.values())[0]) # as the input is one entire sequence, we expect only one contig back
+        
+        poportion_correct = 100*SequenceMatcher(None, list(new_seq.values())[0], seq).ratio() #calculate the poportion correctly positioned nucs
+        poportion_unbiased[f"{k}"].append(poportion_correct) #add to dict
+    
+          
 
 
 #generate biased sequences   
 gc=0.90
 
 #generate biased sequences 
-biased_seqs = rnd_sequences(bias = gc)
+biased_seqs = rnd_sequences(times, length, gc)
 
-#create variables for counting the failed and successful assemblies
-biased_correct = 0
-biased_failure = 0
-#Print what sequences that will be run
-print(f"Running sequences with GC-content: {100*gc}%")
-for run, seq in enumerate(biased_seqs, 1): #iterate over each sequence and record the run
-    g = DbgSolver(seq) #call the class
-    new_seq = g.assemble() #get the reconstructed sequence 
-    
-    #print some information for each run
-    print(f"Run nr: {run}")
-    print(f"Input sequence: {seq} \n\nOutput sequence: {new_seq}")
-    print(f"Correct assembly: {new_seq == seq}\n-----------------------------------------------------------\n")
-    
-    #count the failed and successful assemblies 
-    if new_seq == seq:
-        biased_correct += 1 
-    else:
-        biased_failure += 1
+poportion_biased = dict() #to store the stats of the assembly 
+result_biased_seqs = list()#to store the resulting sequences
+
+print(f"Running sequences with GC-content: {100*gc}%\n\n")
+
+for k in ks:
+    poportion_biased[f"{k}"] = list()
+    for run, seq in enumerate(biased_seqs, 1): #iterate over each sequence and record the run
+        g = DbgSolver(seq, k) #call the class
+        new_seq = g.assemble() #get the reconstructed sequence 
         
- 
-#Print overall statistics for biased and unbiased sequences        
-print(f"Assembly statistics for gc-content: 50% \nCorrect assemblies: {correct}\nFailed assemblies: {failure}\n\n")
-print(f"Assembly statistics for gc-content: {100*gc}% \nCorrect assemblies: {biased_correct}\nFailed assemblies: {biased_failure}")
+        result_biased_seqs.append(list(new_seq.values())[0]) # as the input is one entire sequence, we expect only one contig back
+        
+        poportion_correct = 100*SequenceMatcher(None, list(new_seq.values())[0], seq).ratio() #calculate the poportion correctly positioned nucs
+        poportion_biased[f"{k}"].append(poportion_correct) #add to dict
+
+        
+    
+    
+    
+script_dir = Path( __file__ ).parent.absolute() #get the path to the dir where the test script is placed
+
+
+#set the output paths
+dir_path = f"{script_dir}/test_basic"
+output_file = f"{dir_path}/result_test_basic.fna"
+input_seqs = f"{dir_path}/inputSequences_test_basic.fna"
+output_test_log = f"{dir_path}/log_test_basic.txt"
+
+#create directory from root if not existing
+if not Path(dir_path).exists():
+    Path(dir_path).mkdir()
+    
+
+with open(input_seqs, "w") as fileObj: #write the input sequences to a file
+    i = 1
+    for unb_seq in unbiased_seqs: #First write the unbiased
+        fileObj.write(f"Run nr {i}_unbiased\n")
+        fileObj.write(f"{unb_seq}\n")
+        i += 1
+        
+    i = 1    
+    for b_seq in biased_seqs: #write the biased
+        fileObj.write(f"Run nr {i}_biased\n")
+        fileObj.write(f"{b_seq}\n")
+        i += 1  
+        
+
+with open(output_file, "w") as fileObj: #write the resulting sequences to a file      
+    i = 1
+    for unb_seq in result_unbiased_seqs: #First write the unbiased
+        fileObj.write(f"Run nr {i}_unbiased\n")
+        fileObj.write(f"{unb_seq}\n")
+        i += 1
+        
+    i = 1    
+    for b_seq in result_biased_seqs: #write the biased
+        fileObj.write(f"Run nr {i}_biased\n")
+        fileObj.write(f"{b_seq}\n")
+        i += 1     
+    
+
+with open(output_test_log, "w") as fileObj: #write a log file     
+
+    i = 1
+    #write the the unbiased
+    fileObj.write(f"GC-content: 50%, length: {length}bp\n")
+    for k, pop in poportion_unbiased.items():
+        average = round(sum(pop)/len(pop),2) #calc average correct assembly
+        fileObj.write(f"For kmer size: {k}, average poportion of correct assembly: {average}\n")
+        i += 1
+
+    i = 1
+    #write the the biased
+    fileObj.write(f"\n\nGC-content: 90%, length: {length}bp\n")
+    for k, pop in poportion_biased.items():
+        average = round(sum(pop)/len(pop),2) #calc average correct assembly
+        fileObj.write(f"For kmer size: {k}, average poportion of correct assembly: {average}\n")
+        i += 1
