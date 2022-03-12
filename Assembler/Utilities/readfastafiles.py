@@ -7,12 +7,12 @@ Author: Daniel Nilsson
 
 Description:
     Utilities for reading in a fasta file
-    * Either get a tuple containing two lists. One list containing the ids and the other containg the sequences
-    * Or create a dictionary where the key corresponds to the sequence id and the value corresponds to the sequence
+    * Create a dictionary where the key corresponds to the sequence id and the value corresponds to the sequence
+    * convert fastq to fasta
 
 
 List of functions:
-    - readFasta_returnTuple   
+    - readFastQ_returnDict_Fasta   
     - readFasta_returnDict
     
 """
@@ -20,89 +20,6 @@ List of functions:
 import sys
 from Assembler.Utilities.check_valid_sequence import check_valid_sequence
 #script for reading fasta files
-
-def readFasta_returnTuple(input_fasta, seq_type = "DNA", allowN = True, isAligned = False):
-    """
-    
-    This function takes a FASTA file as input and stores the ids in one list and
-    the sequence in one list, where id with index x will have the corresponding
-    sequence with index x in the sequence list
-    
-    """
-    print("\n\nReading the input fasta")  #print start of execution
-    
-    with open(input_fasta, "r") as in_fasta: #open the fasta file 
-       
-        #create variables to store the fasta ids and sequences in
-        ids = [] #holds the fasta ids
-        sequences = [] #holds the complete sequence
-        seqFragments = [] #this is to store each sequence stretching over more than one line
-        
-        
-        #Checking if first line starts with > to ensure correct FASTA format as the header might only contain the characters A C G T
-        if not in_fasta.readline().startswith('>'): #just an initial check
-             print(f"\nError: Specified file: '{input_fasta}' is not in DNA FASTA format") #give the user an error message
-             sys.exit() #exit 
-        
-        #Reset line pointer to the first line again
-        in_fasta.seek(0) 
-        
-        
-        #parse the FASTA file     
-        for fasta_line in in_fasta:
-                              
-            if fasta_line.startswith('>'): #check if the line starts with a '>'
-                fasta_line = fasta_line[1:] #remove the > sign
-                
-                if fasta_line in ids: #Check for duplicates in the fasta file
-                    print(f"Error: fasta file: {input_fasta} contains duplicates") #print error message
-                    sys.exit() #exit
-                    
-                
-                ids.append(fasta_line.rstrip("\n")) #Strip the new line from the end of the sequence id and
-                                                    #append the id to the list of ids
-                
-                # found start of next sequence
-                if seqFragments: #if seqFragment is not empty
-                    
-                    
-                    sequence = ''.join(seqFragments).upper() #join the seqFragment to the sequence
-                    sequences.append(sequence) #append the complete sequence to the sequence list
-                    seqFragments = [] #reset the seqFragment for the next sequence
-           
-            else: #if the line does not start with a '>'
-                
-                fasta_line.strip()
-                #Checking if the DNA sequence is valid
-                if not check_valid_sequence(fasta_line, seq_type, allowN, isAligned): #if any other character than ACGT is found
-                    print(f"\nError: Specified file: '{input_fasta}' contains invalid characters") #print not valid DNA format
-                    sys.exit() #exit 
-                    
-                    
-                # found more of existing sequence if the line does not start with a '>'
-                seq = fasta_line.rstrip() # remove the new line character
-                seqFragments.append(seq) #then append more of the sequence to seqFragment
-            
-            
-        if seqFragments: #at the last line no new id that starts with '>' is found 
-            # therefore we need to append the last sequence fragment to the sequence list
-            sequence = ''.join(seqFragments).upper() #first join the seqFragments and the
-            sequences.append(sequence) #append the complete sequence to the list of sequences
-    
-   
-    for seq in sequences: #this is just a check to see if there is a empty string in the list of sequences
-        if not seq: #if a empty string is found then an id does not have a sequence which creates a jump 
-                    #in the index, not linking the index positions to each other in the id list and sequence list
-                    #Therefore, this must be checked.
-            print(f"""\nError: Number of sequence ids does not match the number of sequences 
-              in specified file: '{input_fasta}'. """) #give the user an error message
-            sys.exit() #exit
-                    
-        
-    print("\n\nDone reading the input fasta") #print the end of execution
-    return ids, sequences #return the id and sequence list
-
-
 
 
 def readFasta_returnDict(input_fasta, seq_type = "DNA", allowN = True, isAligned = False):    
@@ -159,7 +76,7 @@ def readFasta_returnDict(input_fasta, seq_type = "DNA", allowN = True, isAligned
                           """) #print invalid DNA format
                     sys.exit() #exit 
                
-                sequence += line.strip().upper() #append to the sequence, strip the new line and make the sequence to uppercase letters
+                "".join([sequence, line.strip().upper()]) #append to the sequence, strip the new line and make the sequence to uppercase letters
                 
         fasta_dict[header] = sequence #this is needed as the last header and sequence wont be added otherwise
                                       #because we are only adding a key value pair to the dict when a new header is found
@@ -175,15 +92,37 @@ def readFasta_returnDict(input_fasta, seq_type = "DNA", allowN = True, isAligned
     return fasta_dict #return the dictionary of sequence ids and sequences
 
 
-
-
-    
-if __name__ == "__main__":
+def readFastQ_returnDict_Fasta(fastq_1, seq_type = "DNA", allowN = True):
     """
-    
-    If the script is run as main.
-    Here is the number of arguments provided checked and if they are valid.
-    If everything looks fine then the functions are called  
-    
-    """ 
+    Convert a fastq file to a fasta file, paired reads can be specified. The result is stored in a dictionary without the > as the first
+    character in the header line
+    """
+    #create the headers for each line
+    info = ['header', 'sequence', 'optional', 'quality']
+    n = 4 #each id consists of 4 lines
+    fq_1 = dict() #dictionary for forward reads
+
+    with open(fastq_1, 'r') as f1: #start with the fastq with forward reads
+        lines = []  #create a list to store the lines
+        for line in f1:
+            lines.append(line.rstrip()) #append each line to the list
+            if len(lines) == n: #when the length of the list is 4
+                record = {k: v for k, v in zip(info, lines)} #assign each line to the given headers in the info list
+                header = "_".join(record.pop("header").split(" "))[1:] #remove the header and assign to a separate variable
+                record.pop("optional") #remove lines with unecessary info
+                record.pop("quality") #remove lines with unecessary info
+
+                if not check_valid_sequence(record["sequence"], seq_type, allowN): #if any other character than -ACTGactg is found
+                    print(f"""\nError: Specified file: '{fastq_1}' contains invalid characters in sequence with the id '{header}'
+                          """) #print invalid DNA format
+                    sys.exit() #exit
+
+                fq_1[header] = record["sequence"]  #assign the sequence as the value to the header
+                lines = [] #reset the lines list
+
+
+        return fq_1
+        
+if __name__ == "__main__":
+
     pass
