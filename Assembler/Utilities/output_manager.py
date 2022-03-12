@@ -19,11 +19,11 @@ from datetime import date #to get the date
 
 from Assembler.Utilities import pathchecker #used for creating the directories
 
-#featch the date for the logfile and defualt directory
+#fetch the date for the logfile and defualt directory
 today = date.today()
 current_date = today.strftime("%d_%m_%Y")
 
-def output_results(input_arg, k, output_seq, poportion, 
+def output_results(input_arg, k, output_seq, 
                    output_file, directory, onlySeq = False):
     """
     Get the arguments from dbgAssembler
@@ -43,8 +43,9 @@ def output_results(input_arg, k, output_seq, poportion,
     #first create the file for the assembly
     output_file = directory + "/"+ output_file
     with open(output_file, "w") as output_result:
-        output_result.write(">Scaffold_1\n") #create a header
-        output_result.write("%s\n" % output_seq) #Write out the sequence
+        for header, seq in output_seq.items():
+            output_result.write(f">{header}\n") #create a header
+            output_result.write(f"{seq}\n") #Write out the sequence
             
     #check whatever it is a sequence or a fasta file
     if not onlySeq:   
@@ -53,7 +54,7 @@ def output_results(input_arg, k, output_seq, poportion,
         with open(logfile, "w") as output_log: 
             output_log.write("Input file: %s\n" % input_arg) #write the input file
             output_log.write("Size of kmer used: %s\n" % k) #write the kmer size
-            output_log.write("Poportion of sequence assembled correctly: %s%%\n" % poportion) #and the porportion that is correct
+
     
     else:       
         #then create a log file 
@@ -61,10 +62,12 @@ def output_results(input_arg, k, output_seq, poportion,
         with open(logfile, "w") as output_log: 
             output_log.write("Input sequence: %s\n" % input_arg) #write the input file
             output_log.write("Size of kmer used: %s\n" % k) #write the kmer size
-            output_log.write("Poportion of sequence assembled correctly: %s%%\n" % poportion) #and the porportion that is correct       
+     
             
             
 
+if __name__ == "__main__":
 
+    pass
 
 
