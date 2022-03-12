@@ -8,7 +8,9 @@ Author: Daniel Nilsson
 Description:
     This program takes a DNA sequenc as input and an optional integer k.
     It then splits the string in overlapping kmers of size k, produces a De Bruijn graph
-    of k-1 mers. Then finds an Eulerian path and outputs the reconstructed sequence
+    of k-1 mers. Then finds an Eulerian path and outputs the reconstructed sequence.
+    
+    OBS, this is not a memory efficient script. It cannot handle to large sequences
 
 List of functions:
     main()
@@ -43,16 +45,14 @@ Usage:
     python dbgAssembler.py <sequence> -k <kmer_size> [optional]
 
 """
-import sys #to append current path
+
 from pathlib import Path #check existing path
 import random #enables random choice of edge traversal
 import argparse #enables user input
-from difflib import SequenceMatcher #to compare output and input sequence
 from datetime import date #to get the date
-sys.path.append(".")
-
 
 from Assembler.Utilities.check_valid_sequence import check_valid_sequence #to check for correct input
+from Assembler.Utilities.readfastafiles import readFastQ_returnDict_Fasta #to read in fasta file
 from Assembler.Utilities.readfastafiles import readFasta_returnDict #to read in fasta file
 from Assembler.Utilities.output_manager import output_results #to write result to a file
 
@@ -102,70 +102,72 @@ class DbgSolver:
      
         Nr of kmers = L-k+1, L is the length of the input sequence, k is the kmer size
         """
-        edges = list() #represent all edges by a dictionary
-                       #This is to keep track of the repeat of the kmer
-
+        edges = dict()
+        
         #get length of the sequence
         sequence_length = len(self.sequence)
-
+        
         #iterate over the length to get the start index and the length of the sequence 
-        #starting at position k to get the end index for slicing
+        #starting at position kto get the end index for slicing
         for start, end in zip(range(sequence_length), range(self.k, sequence_length+1)):
             #slice the sequence in kmers using the indices:
             kmer = self.sequence[start:end]
-
-            edges.append(kmer)
-
+            
+            if kmer not in edges.keys():
+                edges[kmer] = 1
+            else:
+                edges[kmer] += 1
+        
+        self.sequence = "" #reset the sequence
         return edges
 
         
     
-    def __create_graph(self):
+    def create_graph(self):
         """
         Create the node by splitting up the edges in pairs of k-1mers
         These will be used to create the De Bruijn graph
         """
                 
-        edges = self.__create_kmers() #firstly, get the edges (kmers)
-        graph = dict() #store the nodes in a dictionary
-                       #the De Bruijn graph will be represented as an adjacency list with slight modification taking repeats into account
+        edges = self.__create_kmers() #get the edges (kmers)
+        graph = dict() #create a empty dictionary to be  with nodes 
         
-        for node in edges: #get the edge and the repeat count
+        for node, repeat in edges.items(): #get the edge and the repeat count
 
-            left, right =  node[:-1], node[1:] #create the nodes which will create two nodes per kmer, 
-                                               #the nodes will have a k-1 overlap to each other
+            left, right =  node[:-1], node[1:] #create the nodes by creating two sequences with k-1 in overlap 
             
-            #populate the adjacency list, all nodes needs to be present as a key
-            #in the dictionary
-            if left not in graph: 
-
-                graph[left] = list()
+            if left not in graph: #if the left node is not in the graph, assign it as a key
+                graph[left] = dict()
             
-            if right not in graph:
-                graph[right] = list()
+            if right not in graph: #if the right node is not in the graph, assign it as a key
+                graph[right] = dict()
                 
-            #As left and right are from the same kmer, this will always be true in terms of 
-            #overlap
-            graph[left].append(right)
-            
-        self.graph = graph
+            #As left and right are from the same kmer, this will always be true in terms of overlap
+            if right not in graph[left].keys():              
+                graph[left].update({right:repeat}) #assign the repeat count as this represent the number of edges to th node
+        
+        self.graph = graph #create a graph for the class
+        return graph  #also return a graph if the case one would only want to use the graph
         
     
-    def __count_edges(self):
+    def count_edges(self):
         """
         Represent the de Bruijn graph as an adjacency matrix 
         Here we merge repeated nodes to an unique node 
         """
 
-        nodes = dict() #create a dictionary to store each node with its in and out degrees
+        edges = self.__create_kmers()
+        nodes = dict() #create a dictionary to store each node with its in and out degreees
         
         for node in self.graph.keys(): #loop over each node
             
             nodes[node] = {"in": 0, "out": 0} #create nested dictionaries to store in and out degrees
             
-            edges = len(self.graph[node]) #The number of repeats will be the number of 
+            #count the out degree
+            for connected_node in self.graph[node]:
+                edges = self.graph[node][connected_node] #The number of repeats will be the number of 
                                                          #edges for one connected node
-            nodes[node]["out"] = edges #add the edges to one connected node to get the out degree of the current node
+                nodes[node]["out"] += edges #add the edges to one connected node to get the out degree of the current node
             
             #get the in edges by checking the keys in which 
             #the node is the value for
@@ -173,13 +175,13 @@ class DbgSolver:
                 if node in connected_nodes: #if the node is present as a value for another node, then
                                             #the number of out edges for the other node will 
                                             #be the number of in edges for the current node
-                    nodes[node]["in"] += connected_nodes.count(node) #Sum all in edges to get the in degree of the current node
-                    
+                    nodes[node]["in"] += connected_nodes[node] #Sum all in edges to get the in degree of the current node
+              
         self.degrees = nodes  
 
     
     
-    def __get_nodes(self):
+    def get_nodes(self):
         """
             If an eulerian trail is present, then we have one node with:
                 
@@ -190,27 +192,24 @@ class DbgSolver:
             Then start at a random node
         """
         #create two sets to store the potential start and end node
-        start = dict() 
-        end = dict()
+        start = list()
+        end = list()
         
-        self.__count_edges()
+        for node, degrees in self.degrees.items(): #start by looping over each node and its degree
+            diff = degrees["out"] - degrees["in"] 
+            if diff == 1: #if there is one more out degree, append to the start list
+                start.append((node, list(self.graph[node].keys()))) #add the node and the neighbors as a tuple
+                
+            elif diff == -1: #if there is one more in degree, append to the end list
+                end.append((node, list(self.graph[node].keys()))) #add the node and the neighbors as a tuple
+                
+        if len(start) == 1 and len(end) == 1: #if there are two unblanced nodes, we have an eulerian path. return the start value if that is the case
+            return start[0]
         
-        for node, degrees in self.degrees.items():  #start by looping through the in and out degree
-            diff = degrees["out"] - degrees["in"] #check the difference
-            if diff == 1: #if 1, we have a start node as the out degree is larger
-                return node, self.graph[node]
-            elif diff == -1: #if -1, we have a higher in degree than out, meaning it is a end node
-                end[node] = self.graph[node]
-        
-        #if the sets start and end have length 1, we have a eulerian trial, then get the start node
-        if len(start) == 1 and len(end) == 1:
-            return start #get the string value
-        
-        #if all nodes are balanced, then choose one at random to return as we do not know the start
-        #for an eulerian cycle
-        elif len(start) == 0 and len(end) == 0:
-            node = random.choice(list(self.degrees.keys()) )
-            return node, self.graph[node]         
+        else: #else, just return a random node
+            node = random.choice(list(self.graph.keys())) #choose a random node
+            neighbors = random.choice(list(self.graph[node].keys()))  #add the node and the neighbors as a tuple       
+            return node, neighbors
     
             
     def __traversal(self):
@@ -219,19 +218,19 @@ class DbgSolver:
          When an end is reached (a node with no outgoing edges) append the node to the and backtrack the path
          """
 
-         self.__create_graph() #create the graph
+         self.create_graph() #create the graph
          
          unvisited = list() #create a list to track the nodes which have untraversed edges
          path = list() #create a list to store the path taken through the de bruijn graph
          
          #assign the start node
-         node, neighbors = self.__get_nodes()        
-         
+         self.count_edges()
+         node, neighbors = self.get_nodes()        
          unvisited.append(node)
          #While there are unvisited edges in graph:
          while unvisited: #while there still is untraversed nodes
               node = unvisited[-1] #assign the last element in the unvisited list to be the next node
-              neighbors = self.graph[node] #get the neighbors
+              neighbors = list(self.graph[node].keys())#get the neighbors
               if self.degrees[node]["out"] == 0: #if the out degree is 0, we have reached an end
                   path.append(node) #append the node to the path (starting from the last node)
                   unvisited.pop(-1) #remove the node from the unvisited list
@@ -240,8 +239,12 @@ class DbgSolver:
               #if there still is remaning edges
               else:
                   self.degrees[node]["out"] -= 1 #remove one from the total count of outgoing edge
-                  next_node = random.choice(neighbors) #get one random node from the neighbors
-                  self.graph[node].remove(next_node)  #remove the chosen neighbors from the current node
+                  next_node = random.choice(neighbors) #get one random node from the neighbors   
+                  
+                  self.graph[node][next_node] -= 1  #remove the chosen neighbors from the current node
+                  if self.graph[node][next_node] == 0:
+                      self.graph[node].pop(next_node)   
+                      
                   unvisited.append(next_node) #add the next node to the  unvisited list as this will be the next starting point
                    
             
@@ -251,95 +254,143 @@ class DbgSolver:
  
     def assemble(self):
         """
-        Takes kthe eulerian path/cycle and assembles it
+        Takes the eulerian path/cycle and assembles it
+        It will continue to call the 
         """
-           
-        c = self.__traversal()
+          
+        scaffold = dict() #a dictionary to hol the assembled sequences
+        i = 1 #index for the header
         
+        c = self.__traversal() #start by calling traversal function 
+       
         sequence = "" # and add to the sequence and set the first to false
         first = True
         #Missing step:  convert the cycle c into the sequence:
         for node in c: #iterate through the path list
-               
             if first: #check for the first element 
-                sequence += node # and add to the sequence and set the first to false
+                sequence = "".join([sequence, node])  # and add to the sequence and set the first to false
                 first = False
             else: #Add only the last character of all the other nodes that are not the first
-                sequence += node[-1]  
+                sequence = "".join([sequence, node[-1]]) 
                 
+                
+        scaffold[f"Scaffold_{i}"] = sequence #add the sequence to the dictionary for output
+        i += 1
+        
+        
+        while any(self.graph.values()): #while there still are untraversed edges    
+            c = self.__traversal() #call traversal function again
+                
+            sequence = "" # and add to the sequence and set the first to false
+            first = True
+            #Missing step:  convert the cycle c into the sequence:
+            for node in c: #iterate through the path list
+                   
+                if first: #check for the first element 
+                   sequence = "".join([sequence, node]) # and add to the sequence and set the first to false
+                   first = False
+                   
+                else: #Add only the last character of all the other nodes that are not the first
+                   sequence = "".join([sequence,node[-1]]) 
+                    
+            scaffold[f"Scaffold_{i}"] = sequence #add the sequence to the dictionary for output
+            i += 1
 
-        return(sequence)
-    
-    
-    def get_dbg(self):
-        """
-        if the user wants the create_graph
-        """
-        if not self.graph:
-            self.__create_graph()
-            
-        return self.graph
-    
+        return scaffold
+      
+"".join(["ads", "dsad"[-1]]) 
 
 def main():
     """
-    When called as main, get the input of 
+    When called as main, get the input from the user
     """
     today = date.today()
     current_date = today.strftime("%d_%m_%Y")
     output = f"dbgAssembler_run_{current_date}.fna"
     directory = f"dbgAssembler_{current_date}"
     #create a parser for the command line
-    parser = argparse.ArgumentParser(usage="""%(prog)s python dbgAssembler.py -i <sequence> -f <fasta_file> -k <kmer_size> [optional] -o <output_file> [optional] - \nType -h/--help for the help message""",
+    parser = argparse.ArgumentParser(usage="""%(prog)s python dbgAssembler.py -i <sequence> -f <input_file> -k <kmer_size> [optional] -o <output_file> [optional] \nType -h/--help for the help message""",
                                 description="This program takes a dna string or a fasta file as input and breaks the sequence into kmers of size k. Then reassembles the string using a De Bruijn graph approach")
    
     
     #create arguments for inputs: sequence, file and k
     parser.add_argument("-i", metavar='<input_sequence>', type=str,  help="a DNA string", default=None)
         
-    parser.add_argument("-f", metavar='<fasta_file>',  help="path to fasta file", default=None)
+    parser.add_argument("-f", metavar='<input_file>',  help="path to fasta file", default=None)
+    
+    parser.add_argument("-t", metavar='<fasta/fastq>',  help="Specify whatever the input file is in fasta or fastq format", default=None)
     
     parser.add_argument("-k",  metavar='<kmer_size>', type=int, help="kmer size (default 1/3 of the sequence length, max: 256)")
     
-    parser.add_argument("-o", metavar='<output_file>', type=str,  help="path to outputfile, default: dbgAssembler_run{current_date}.txt", default=output)
+    parser.add_argument("-o", metavar='<output_file>', type=str,  help="path to outputfile, default: dbgAssembler_run{current_date}.fna", default=output)
     
-    parser.add_argument("-d", metavar='<output_file>', type=str,  help="name of output directory to create, default: dbgAssembler_{current_date}", default=directory)
+    parser.add_argument("-d", metavar='<directory>', type=str,  help="name of output directory to create, default: dbgAssembler_{current_date}", default=directory)
     
     #assign the parsed input to a variable
     args = parser.parse_args()
     
     #assign each input to a new variable
     sequence = args.i
-    fasta_file = args.f
+    input_file = args.f
+    type_f = args.t  
     k = args.k 
     output = args.o 
     directory = args.d
     
-    
-    if sequence and fasta_file:
+    #if a sequence is specified, then the format cannot be specified
+    if sequence and type_f:
+        raise Exception("Error: format type cannot be specified with a string (sequence) as input")    
+ 
+    #both sequence and a file cant be used together
+    if sequence and input_file:
         raise Exception("Only one of -i and -f can be specified at a time")
     
     
-    elif fasta_file:
-        if  Path(fasta_file).is_file():    
-              fasta = readFasta_returnDict(fasta_file)
+    elif input_file:
+        if not type_f: #check if the format is specified
+            raise Exception("Error: The format of the input file must be specified") #give a message that the type format must be specified
+        
+        #check whatever the format is given correctly
+        elif type_f.lower() != "fastq" and type_f.lower() != "fasta":
+            raise Exception("Error: Invalid format") #give a message that the format is invalid
+            
+        if Path(input_file).is_file():  #check whatever the input file is an actual file..   
+            if type_f.lower() == "fasta": #if it is in fasta format
               
               #get the sequences:
               sequences = "" 
               
-              for seq in fasta.values():
-                  sequences += seq
-              #call the DgbSolver
+              #create one large sequence
+              for seq in readFasta_returnDict(input_file).values():
+                 sequences = "".join([sequences, seq])
+                  
+              #call the DgbSolver with k or without
               if k: 
                   graph = DbgSolver(sequences, k)
               else:
                  graph = DbgSolver(sequences)  
+                 
+         
+            elif type_f.lower() == "fastq": #if it is in fastq format
             
-        else:
-            raise Exception(f"Error: {fasta_file} is not a file or does not exist")
-    
+                #create an empty string to hold the one-line sequence
+                sequences = ""
+
+                #convert to fasta and create one large sequence
+                for seq in readFastQ_returnDict_Fasta(input_file).values(): #
+                    sequences = "".join([sequences, seq])
+
+                #call the DgbSolver with k or without
+                if k:
+                    graph = DbgSolver(sequences, k)
+                else:
+                   graph = DbgSolver(sequences)     
+                   
+        else: #raise an error in the 
+            raise Exception(f"Error: {input_file} is not a file or does not exist")
+               
         
-    elif not sequence:
+    elif not sequence: #if neither a sequence or a file is present
         raise Exception("Error: No input specified")
         
     #check if k is specified and create a DbgGraph object with the k or without if not specified 
@@ -357,20 +408,12 @@ def main():
     #Tell the user if the reassembly was succesful or not by comparing 
     #the input sequence with the reconstructed
     #write to output file
-    if not sequence and fasta_file:
-        poportion_correct = 100*SequenceMatcher(None, new_seq, sequences).ratio()
-        if directory:      
-            output_results(fasta_file, graph.k, new_seq, poportion_correct, output, directory)
-        else:
-            output_results(fasta_file, graph.k, new_seq, poportion_correct, output)
+    if not sequence and input_file:    
+        output_results(input_file, graph.k, new_seq, output, directory) #call the function to write to output files
         
-    elif sequence and not fasta_file:
-        poportion_correct = 100*SequenceMatcher(None, new_seq, sequence).ratio()
-        
-        if directory:
-            output_results(sequence, graph.k, new_seq, poportion_correct, output, directory, onlySeq = True)       
-        else:
-            output_results(sequence, graph.k, new_seq, poportion_correct, output, onlySeq = True)
+    elif sequence and not input_file: #specify if the input was a file or a single string     
+            output_results(sequence, graph.k, new_seq, output, directory, onlySeq = True)  #call the function to write to output files    
+
     
 
 
@@ -381,4 +424,5 @@ if __name__ == "__main__":
     """
     main()
     
-
+ 
+    
