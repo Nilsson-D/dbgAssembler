@@ -10,7 +10,6 @@ Description:
     * Creation of directories
     * check if a file already exists
 
-
 List of functions:
     - check_path_overwrite   
     - createDirs
@@ -22,7 +21,6 @@ List of "non standard" modules:
 
 from pathlib import Path
 
-#Path essentials
 
 
 def check_path_overwrite(path):
@@ -117,11 +115,5 @@ def createDirs(name):
 
     
 if __name__ == "__main__":
-    """
-    
-    If the script is run as main.
-    Here is the number of arguments provided checked and if they are valid.
-    If everything looks fine then the functions are called  
-    
-    """ 
+
     pass
