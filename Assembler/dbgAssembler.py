@@ -102,6 +102,8 @@ class DbgSolver:
      
         Nr of kmers = L-k+1, L is the length of the input sequence, k is the kmer size
         """
+        print("Creating kmers")
+        
         edges = dict()
         
         #get length of the sequence
@@ -118,6 +120,7 @@ class DbgSolver:
             else:
                 edges[kmer] += 1
         
+        print("Done creating kmers")
         self.sequence = "" #reset the sequence
         return edges
 
@@ -130,6 +133,9 @@ class DbgSolver:
         """
                 
         edges = self.__create_kmers() #get the edges (kmers)
+        
+        print("Constructing graph")
+        
         graph = dict() #create a empty dictionary to be  with nodes 
         
         for node, repeat in edges.items(): #get the edge and the repeat count
@@ -146,6 +152,8 @@ class DbgSolver:
             if right not in graph[left].keys():              
                 graph[left].update({right:repeat}) #assign the repeat count as this represent the number of edges to th node
         
+        
+        print("Doen with constructing graph")
         self.graph = graph #create a graph for the class
         return graph  #also return a graph if the case one would only want to use the graph
         
@@ -219,7 +227,6 @@ class DbgSolver:
          """
 
          self.create_graph() #create the graph
-         
          unvisited = list() #create a list to track the nodes which have untraversed edges
          path = list() #create a list to store the path taken through the de bruijn graph
          
@@ -423,6 +430,4 @@ if __name__ == "__main__":
     If the script is run as main
     """
     main()
-    
- 
     

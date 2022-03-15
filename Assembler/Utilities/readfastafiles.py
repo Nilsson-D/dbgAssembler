@@ -76,7 +76,7 @@ def readFasta_returnDict(input_fasta, seq_type = "DNA", allowN = True, isAligned
                           """) #print invalid DNA format
                     sys.exit() #exit 
                
-                "".join([sequence, line.strip().upper()]) #append to the sequence, strip the new line and make the sequence to uppercase letters
+                sequence = "".join([sequence, line.upper()]) #append to the sequence, strip the new line and make the sequence to uppercase letters
                 
         fasta_dict[header] = sequence #this is needed as the last header and sequence wont be added otherwise
                                       #because we are only adding a key value pair to the dict when a new header is found

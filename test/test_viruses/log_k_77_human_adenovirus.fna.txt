@@ -1,0 +1,6 @@
+Input genome: NC_012959.1 Human adenovirus 54, complete genome 
+Genome size: 34920 
+kmer size used: 77 
+Poportion of sequence assembled correctly: 100.0%
+Execution time: 44.4017 
+
