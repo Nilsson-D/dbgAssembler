@@ -1,0 +1,66 @@
+Input genome: human_papillomavirus.fna 
+Genome size: 7320 
+kmer size used: 3 
+Poportion of sequence assembled correctly: 25.095628415300546%
+Execution time: 0.0143 
+
+Input genome: human_papillomavirus.fna 
+Genome size: 7320 
+kmer size used: 6 
+Poportion of sequence assembled correctly: 25.99726775956284%
+Execution time: 0.0366 
+
+Input genome: human_papillomavirus.fna 
+Genome size: 7320 
+kmer size used: 9 
+Poportion of sequence assembled correctly: 20.245901639344265%
+Execution time: 0.936 
+
+Input genome: human_papillomavirus.fna 
+Genome size: 7320 
+kmer size used: 12 
+Poportion of sequence assembled correctly: 32.14480874316939%
+Execution time: 1.205 
+
+Input genome: human_papillomavirus.fna 
+Genome size: 7320 
+kmer size used: 15 
+Poportion of sequence assembled correctly: 99.94535519125684%
+Execution time: 1.2275 
+
+Input genome: human_papillomavirus.fna 
+Genome size: 7320 
+kmer size used: 18 
+Poportion of sequence assembled correctly: 43.29234972677596%
+Execution time: 1.1665 
+
+Input genome: human_papillomavirus.fna 
+Genome size: 7320 
+kmer size used: 21 
+Poportion of sequence assembled correctly: 92.04918032786885%
+Execution time: 1.1406 
+
+Input genome: human_papillomavirus.fna 
+Genome size: 7320 
+kmer size used: 24 
+Poportion of sequence assembled correctly: 92.04918032786885%
+Execution time: 1.125 
+
+Input genome: human_papillomavirus.fna 
+Genome size: 7320 
+kmer size used: 27 
+Poportion of sequence assembled correctly: 92.04918032786885%
+Execution time: 1.1399 
+
+Input genome: human_papillomavirus.fna 
+Genome size: 7320 
+kmer size used: 30 
+Poportion of sequence assembled correctly: 100.0%
+Execution time: 1.1448 
+
+Input genome: human_papillomavirus.fna 
+Genome size: 7320 
+kmer size used: 33 
+Poportion of sequence assembled correctly: 100.0%
+Execution time: 1.1817 
+

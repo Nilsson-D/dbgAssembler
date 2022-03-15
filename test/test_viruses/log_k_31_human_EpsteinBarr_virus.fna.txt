@@ -1,6 +1,0 @@
-Input genome: NC_007605.1 Human gammaherpesvirus 4, complete genome 
-Genome size: 171823 
-kmer size used: 31 
-Poportion of sequence assembled correctly: 0.0%
-Execution time: 709.7585 
-

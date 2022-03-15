@@ -1,0 +1,66 @@
+Input genome: human_coronavirus2.fna 
+Genome size: 29903 
+kmer size used: 3 
+Poportion of sequence assembled correctly: 25.28508845266361%
+Execution time: 0.0502 
+
+Input genome: human_coronavirus2.fna 
+Genome size: 29903 
+kmer size used: 6 
+Poportion of sequence assembled correctly: 25.40213356519413%
+Execution time: 0.0828 
+
+Input genome: human_coronavirus2.fna 
+Genome size: 29903 
+kmer size used: 9 
+Poportion of sequence assembled correctly: 21.86068287462797%
+Execution time: 16.1454 
+
+Input genome: human_coronavirus2.fna 
+Genome size: 29903 
+kmer size used: 12 
+Poportion of sequence assembled correctly: 16.292679664247732%
+Execution time: 33.6449 
+
+Input genome: human_coronavirus2.fna 
+Genome size: 29903 
+kmer size used: 15 
+Poportion of sequence assembled correctly: 28.873357188241975%
+Execution time: 34.0816 
+
+Input genome: human_coronavirus2.fna 
+Genome size: 29903 
+kmer size used: 18 
+Poportion of sequence assembled correctly: 21.971039695013882%
+Execution time: 30.2148 
+
+Input genome: human_coronavirus2.fna 
+Genome size: 29903 
+kmer size used: 21 
+Poportion of sequence assembled correctly: 100.0%
+Execution time: 30.1821 
+
+Input genome: human_coronavirus2.fna 
+Genome size: 29903 
+kmer size used: 24 
+Poportion of sequence assembled correctly: 100.0%
+Execution time: 30.1908 
+
+Input genome: human_coronavirus2.fna 
+Genome size: 29903 
+kmer size used: 27 
+Poportion of sequence assembled correctly: 100.0%
+Execution time: 30.3379 
+
+Input genome: human_coronavirus2.fna 
+Genome size: 29903 
+kmer size used: 30 
+Poportion of sequence assembled correctly: 100.0%
+Execution time: 30.4632 
+
+Input genome: human_coronavirus2.fna 
+Genome size: 29903 
+kmer size used: 33 
+Poportion of sequence assembled correctly: 100.0%
+Execution time: 30.5271 
+

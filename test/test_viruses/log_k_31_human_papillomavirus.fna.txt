@@ -1,6 +1,0 @@
-Input genome: NC_027779.1 Human papillomavirus isolate SE379, complete genome 
-Genome size: 7320 
-kmer size used: 31 
-Poportion of sequence assembled correctly: 100.0%
-Execution time: 1.2892 
-
