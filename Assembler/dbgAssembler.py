@@ -282,30 +282,9 @@ class DbgSolver:
                 
                 
         scaffold[f"Scaffold_{i}"] = sequence #add the sequence to the dictionary for output
-        i += 1
-        
-        
-        while any(self.graph.values()): #while there still are untraversed edges    
-            c = self.__traversal() #call traversal function again
-                
-            sequence = "" # and add to the sequence and set the first to false
-            first = True
-            #Missing step:  convert the cycle c into the sequence:
-            for node in c: #iterate through the path list
-                   
-                if first: #check for the first element 
-                   sequence = "".join([sequence, node]) # and add to the sequence and set the first to false
-                   first = False
-                   
-                else: #Add only the last character of all the other nodes that are not the first
-                   sequence = "".join([sequence,node[-1]]) 
-                    
-            scaffold[f"Scaffold_{i}"] = sequence #add the sequence to the dictionary for output
-            i += 1
 
         return scaffold
       
-"".join(["ads", "dsad"[-1]]) 
 
 def main():
     """
