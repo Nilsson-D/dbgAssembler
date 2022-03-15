@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Title: pathchecker.py
 Created on Thur 09-03-2022
@@ -15,12 +14,11 @@ List of functions:
     - createDirs
     
 List of "non standard" modules:
-
-
+    -
+    
 """
 
 from pathlib import Path
-
 
 
 def check_path_overwrite(path):
