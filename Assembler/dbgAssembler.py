@@ -51,19 +51,19 @@ def option_handler():
     
     #create a parser for the command line
     parser = argparse.ArgumentParser(usage="""%(prog)s -i <input_file> -k <kmer_size> [optional] -o <output_file> [optional] \nType -h/--help for the help message""",
-                                description="This program takes a single line fasta file (DNA) as input and breaks the sequences into kmers of size k. Then reassembles the string using a De Bruijn graph approach")
+                                description="This program takes an one-line fasta file (DNA) as input and breaks the sequence into kmers of size k. Then reassembles the string using a de Bruijn graph based approach")
    
 
     #Here are all the parameters that the user can specify           
-    parser.add_argument("-i", metavar='<input file>',  help="path to fasta file", default=None)
+    parser.add_argument("-i", metavar='<input file>',  help="path to fasta file", required=True)
     
     parser.add_argument("-k",  metavar='<kmer size>', type=int, help="kmer size (default: 31, max: 251)", default=k)
     
-    parser.add_argument("-o", metavar='<output file>', type=str,  help="path to outputfile, default: dbgAssembler_run{current_date}.fna", default=output)
+    parser.add_argument("-o", metavar='<output file>', type=str,  help="name of output file, default: dbgAssembler_run{current_date}.fna", default=output)
     
     parser.add_argument("-d", metavar='<directory>', type=str,  help="name of output directory to create, default: dbgAssembler_{current_date}", default=directory)
     
-    parser.add_argument("-n", metavar='<y/n>',  help="if y, allow Ns in sequence, otherwise don't", default=False)
+    parser.add_argument("-n", metavar='<y/n>',  help="if y, allow Ns in sequence", default=False)
     
     #assign the parsed input to a variable
     args = parser.parse_args()
@@ -77,6 +77,13 @@ def option_handler():
     output = args.o 
     directory = args.d
         
+    
+    if allowN.lower() == "y":
+        allowN = True 
+    elif allowN.lower() == "n":
+        allowN = False
+    else:
+        raise Exception("Error: Invalid input for oprtion -n")
     
     if not pathchecker.check_path_overwrite(directory):
         print("Exiting...")

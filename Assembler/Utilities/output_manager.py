@@ -48,8 +48,9 @@ def output_results(input_arg, k, output_seq, output_file, directory):
     #first create the file for the assembly
     output_file = directory + "/"+ output_file
     with open(output_file, "w") as output_result:
-        output_result.write(">Scaffold_1\n") #create a header
-        output_result.write(f"{output_seq}\n") #Write out the sequence
+        for i,seq in enumerate(output_seq,1):
+            output_result.write(f">Scaffold_{i}\n") #create a header
+            output_result.write(f"{seq}\n") #Write out the sequence
             
  
     #then create a log file 

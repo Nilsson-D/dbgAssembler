@@ -11,8 +11,6 @@ Description:
     of k-1 mers. Then finds an Eulerian path and outputs the reconstructed sequence.
     
     OBS, this is not a memory efficient script. It cannot handle too large sequences
-    The assembler cannot handle circular genomes well (though, it is possible to input)
-    The implementations assumes a linear genome
 
 List of functions:
     main()
@@ -20,7 +18,7 @@ List of functions:
 List of classes: 
     DbgGraph - functions:
         __create_kmers()
-        create_graph()
+        __create_graph()
         __count_edges()
         __get_nodes()
         traversal()
@@ -37,7 +35,7 @@ Procedure:
         * edges will represent the kmer
         * nodes are the prefix and suffix of the kmer
     4. Check Eulerian path/cycle
-    5. Use Depth-first search algorithm to traverse the edges and nodes
+    5. Use Hierholzer's algorithm to traverse all the edges exactly once
         * traverse the same edge only once
     6. When a dead end is found, put the node at the last position for the construction of
        the new sequence, then backtrack until a node with an unused edge is found and start over the path search
@@ -63,7 +61,7 @@ class DbgSolver:
         max_k = 251 #set a max kmer size
                
         self.sequence = "".join(InputManager(input_file).read_fasta(allowN)) #make the sequence to contain only uppercase letters
-        
+
         #handle value of k
         if not k: #if k is not specified, give k value 1/3 of the sequence length
             k = int(len(self.sequence)/3)
@@ -82,9 +80,8 @@ class DbgSolver:
             print(f"Max kmer size reached. Using size {max_k}")
             k=max_k
             
-        self.k = k #intialize k
-        
-        self.graph = dict() 
+        self.k = k #intialize k   
+        self.min_contig_size = 150 #min contig length
         
     def __create_kmers(self):
         """
@@ -95,7 +92,7 @@ class DbgSolver:
         """
         print("Creating kmers")
         
-        edges = dict()
+        edges = list()
         
         #get length of the sequence
         sequence_length = len(self.sequence)
@@ -106,15 +103,10 @@ class DbgSolver:
             #slice the sequence in kmers using the indices:
             kmer = self.sequence[start:end]
             
-            if kmer not in edges.keys():
-                edges[kmer] = 1
-            else:
-                edges[kmer] += 1
+            edges.append(kmer) 
         
         print("Done creating kmers")
-        self.sequence = "" #reset the sequence
         
-        self.edges = edges
         return edges
 
         
@@ -124,25 +116,25 @@ class DbgSolver:
         Create the node by splitting up the edges in pairs of k-1mers
         These will be used to create the De Bruijn graph
         """               
-        self.__create_kmers()
+        edges = self.__create_kmers()
         print("Constructing graph")
-        
         graph = dict() #create a empty dictionary to be  with nodes 
         
-        for node, repeat in self.edges.items(): #get the edge and the repeat count
+        for node in edges: #get the edge and the repeat count
+            left, right =  node[:-1], node[1:] #create the nodes by creating two sequences with k-1 in overlap  
 
-            left, right =  node[:-1], node[1:] #create the nodes by creating two sequences with k-1 in overlap 
-            
             if left not in graph: #if the left node is not in the graph, assign it as a key
-                graph[left] = dict()
+                graph[left] = list()
             
             if right not in graph: #if the right node is not in the graph, assign it as a key
-                graph[right] = dict()
+                graph[right] = list()
                 
             #As left and right are from the same kmer, this will always be true in terms of overlap
-            if right not in graph[left].keys():              
-                graph[left].update({right:repeat}) #assign the repeat count as this represent the number of edges to th node
-        
+            
+            graph[left].append(right) #assign the suffix to the prefix as this will always be true. In this graph, a key can hold multiple copies of one node corresponding to the number of edges between the two nodes
+            
+
+                     
         
         print("Done with constructing graph")
         self.graph = graph #create a graph for the class
@@ -156,16 +148,11 @@ class DbgSolver:
         """
 
         nodes = dict() #create a dictionary to store each node with its in and out degreees
-        
-        for node in self.graph.keys(): #loop over each node
-            
+        for node in self.graph: #loop over each node
             nodes[node] = {"in": 0, "out": 0} #create nested dictionaries to store in and out degrees
             
             #count the out degree
-            for connected_node in self.graph[node]:
-                edges = self.graph[node][connected_node] #The number of repeats will be the number of 
-                                                         #edges for one connected node
-                nodes[node]["out"] += edges #add the edges to one connected node to get the out degree of the current node
+            nodes[node]["out"] = len(self.graph[node]) #add the edges to one connected node to get the out degree of the current node
             
             #get the in edges by checking the keys in which 
             #the node is the value for
@@ -173,9 +160,10 @@ class DbgSolver:
                 if node in connected_nodes: #if the node is present as a value for another node, then
                                             #the number of out edges for the other node will 
                                             #be the number of in edges for the current node
-                    nodes[node]["in"] += connected_nodes[node] #Sum all in edges to get the in degree of the current node
-              
-        self.degrees = nodes  
+                    edges = connected_nodes.count(node)
+                    nodes[node]["in"] += edges #Sum all in edges to get the in degree of the current node
+        
+        return nodes 
   
     
     def __get_nodes(self):
@@ -192,7 +180,9 @@ class DbgSolver:
         start = list()
         end = list()
         
-        for node, degrees in self.degrees.items(): #start by looping over each node and its degree
+        nodes = self.__count_edges()
+        
+        for node, degrees in nodes.items(): #start by looping over each node and its degree
             diff = degrees["out"] - degrees["in"] 
             if diff == 1: #if there is one more out degree, append to the start list
                 start.append(node) #add the node to keep track of the unbalanced node
@@ -203,10 +193,14 @@ class DbgSolver:
         if len(start) == 1 and len(end) == 1: #if there are two unblanced nodes, we have an eulerian path. return the start value if that is the case
             return start[0]
         
-        else: #else, just return a random node
-            node = random.choice(list(self.graph.keys())) #choose a random node      
+        
+        elif len(start) == 0 and len(end) == 0: #Check if the sequence is circular.
+            node = random.choice(list(self.graph.keys())) #choose a random node    
             return node
-    
+        
+        else: #This is for when there is no eulerian path or cicle. Make an attempt to solve it anyways
+            node = random.choice(list(self.graph.keys())) #choose a random node      
+            return node    
             
     def __traversal(self):
          """
@@ -214,35 +208,36 @@ class DbgSolver:
          When an end is reached (a node with no outgoing edges) append the node to the and backtrack the path
          """
 
-         self.create_graph() #create the graph
          unvisited = list() #create a list to track the nodes which have untraversed edges
          path = list() #create a list to store the path taken through the de bruijn graph
-         
          #assign the start node
-         self.__count_edges()
-         node = self.__get_nodes()    
+         node = self.__get_nodes()            
          
-         print("Finding path...")
+         unvisited.append(node)        
          
-         unvisited.append(node)
          #While there are unvisited edges in graph:
          while unvisited: #while there still is untraversed edges
               node = unvisited[-1] #assign the last element in the unvisited list to be the next node
-              neighbors = list(self.graph[node].keys())#get the neighbors
-              if self.degrees[node]["out"] == 0: #if the out degree is 0, we have reached an end
+              neighbors = self.graph[node] #get the neighbors
+              if len(neighbors) == 0: #if the out degree is 0, we have reached an end
+
                   path.append(node) #append the node to the path (starting from the last node)
                   unvisited.pop(-1) #remove the node from the unvisited list as there is no edges left
-                  
-  
+
+                
               #if there still is remaining edges
-              else:
-                  self.degrees[node]["out"] -= 1 #remove one from the total count of the outgoing edge for the node
-                  next_node = random.choice(neighbors) #pick one random node from its neighbors                                          
+              else:                
+                  next_node = random.choice(neighbors) #pick one random node from its neighbors, 
+                                                       #the point of picking a random node instead of the always the first one in the list
+                                                       #is to simulate an unkown path taking. When using real sequenced data, the order wont be
+                                                       #as straightforward as using the first added edge (neighbors[0]) to the path...  
+                  self.graph[node].remove(next_node) #remove the edge coming that we have taken
+        
                   unvisited.append(next_node) #add the next node to the  unvisited list as this will be the next starting point
                    
             
                     
-         return path[::-1] #revrese the order of the path as the order in which the element have been added are in the reverse order (backtracking)
+         return path[::-1] #reverse the order of the path as the order in which the element have been added are in the reverse order (backtracking)
        
  
     def assemble(self):
@@ -251,24 +246,29 @@ class DbgSolver:
         It will continue to call the 
         """
         
-        c = self.__traversal() #start by calling traversal function 
+        self.create_graph() #create the graph
+ 
         print("Creating assembly") 
-       
-        sequence = "" # and add to the sequence and set the first to false
-        first = True
-        #Missing step:  convert the cycle c into the sequence:
-        for node in c: #iterate through the path list
-            if first: #check for the first element 
-                sequence = "".join([sequence, node])  # and add to the sequence and set the "first" to false
-                first = False
-            else: #Add only the last character of all the other nodes that are not the start
-                sequence = "".join([sequence, node[-1]]) #as the path represents the overlap by one, we cannot add the enitre node
-                               
         
-        print("Done :)")
-        return sequence
-      
+        contigs = list()
+        
+        
+        while any(self.graph.values()): #create all paths to get as many contigs as possible
+            
+            path = self.__traversal()
 
+            sequence = ""
+            if len(path) > self.min_contig_size: #define a minimum contig length 
+                sequence = "".join([sequence, path[0]])
+
+                sequence += "".join([node[-1] for node in path[1:]])
+            
+                                                                                     
+                contigs.append(sequence)                                             
+                                                                                                                                                                             
+        print("Done :)")
+        return contigs
+    
 
 
 if __name__ == "__main__":
@@ -276,4 +276,3 @@ if __name__ == "__main__":
     If the script is run as main
     """
     pass
-    
