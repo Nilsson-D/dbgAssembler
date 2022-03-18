@@ -6,5 +6,5 @@ setup(
     author="Daniel Nilsson",
     description="Simple genome assembler",
     packages=find_packages(),
-    python_requires="3.9.10",
+    python_requires=">=3.9.10"
 )
