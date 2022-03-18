@@ -21,7 +21,7 @@ The script can be installed by following instructions:
 ```
 git clone https://github.com/Nilsson-D/dbgAssembler.git
 cd dbgAssembler
-python setup.py
+python setup.py install
 ```
 
 After installation, the dbgAssembler is located in the Assembler folder
