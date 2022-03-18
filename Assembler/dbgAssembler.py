@@ -63,7 +63,7 @@ def option_handler():
     
     parser.add_argument("-d", metavar='<directory>', type=str,  help="name of output directory to create, default: dbgAssembler_{current_date}", default=directory)
     
-    parser.add_argument("-n", metavar='<y/n>',  help="if y, allow Ns in sequence", default=False)
+    parser.add_argument("-n", metavar='<y/n>',  type=str, help="if y, allow Ns in sequence", default = "y")
     
     #assign the parsed input to a variable
     args = parser.parse_args()
