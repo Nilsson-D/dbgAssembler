@@ -18,7 +18,7 @@ List of functions:
 List of classes: 
     DbgGraph - functions:
         __create_kmers()
-        __create_graph()
+        create_graph()
         __count_edges()
         __get_nodes()
         traversal()
