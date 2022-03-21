@@ -2,8 +2,7 @@
 
 ### Description
 dbgAssembler is a simple genome/sequence assembler using a de Bruijn graph based approach.
-The dbgAssembler uses a one-line sequence fasta file as input to generate kmers of the sequence and
-reassembles it by finding the Eulierian path in the de Bruijn graph.
+The dbgAssembler uses a one-line sequence fasta file as input to generate kmers of the sequence and reassembles it by finding the Eulierian path in the de Bruijn graph.
 
 ### Dependencies
 * python v3.9.10
@@ -62,7 +61,7 @@ dbgAssembler.py -i <input_file> -k 15
 
 A test run can be done by running the script test_run_viruses in the test folder.
 If deciding to run the test script, keep in mind that the assembler runs for
-different k-mer sizes. Each run for gammaherpesvirus 4 will take about 12 minutes.
+different k-mer sizes. Each run for gammaherpesvirus 4 will take about 12 minutes (see example evaluation below).
 ```
 test/test_run_viruses
 ```
@@ -77,6 +76,25 @@ dbgAssembler.py -i test_data/<input.fna> -k 15
 The output is a directory containing two files:
   * a fasta file for the assembly
   * a log file with the information about the input file and k-mer size
+
+
+### Example result
+Here are some examples how correct the assemblies are.
+The assemblies are aligned against the reference genomes using mummers (v3.23) dnadiff.
+The assembler has problems with lower kmers and even though a complete alignment is obtained, the assembly had to be broken up into contigs, which is not optimal (Fig 1). A higher kmer size is needed for larger genomes. This is even clear when evaluating the variants between the assembly and the reference (Fig 2). Though the dbgAssembler did not manage to complete assemble the gamma herpesvirus. Lastly, the execution time increases quickly with the sequence length as well (Fig 3). Thus, larger genomes will be time-consuming.
+
+![](/example_figures/Aligned_seq_and_contigs.png)
+
+Fig 1. The percentage of aligned bases to the reference genome and the number of contigs that were needed to align the assembly to reference genome evaluated by mummers dnadiff for different k-mer sizes.
+
+
+![](/example_figures/variants.png)
+
+Fig 2. The number of variants detected when aligning the assembly to the reference genome evaluated by mummers dnadiff for differ-ent k-mer sizes.
+
+![](/example_figures/execution_time.png)
+
+Fig 3. The execution time for each genome run using different k-mer sizes
 
 ### Author
 Daniel Nilsson
