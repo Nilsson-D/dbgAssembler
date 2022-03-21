@@ -44,7 +44,7 @@ Procedure:
 
 
 import random #enables random choice of edge traversal
-
+import sys
 
 from Assembler.Utilities.input_manager import InputManager #enables reading the fasta file
 
@@ -59,9 +59,14 @@ class DbgSolver:
         intialize variables, k is optional
         """
         max_k = 251 #set a max kmer size
+        min_k = 3
                
         self.sequence = "".join(InputManager(input_file).read_fasta(allowN)) #make the sequence to contain only uppercase letters
-
+        
+        if len(self.sequence) < 10:
+            print("Error: Sequence length to short. Minimum length: 10 bp")
+            sys.exit()
+                    
         #handle value of k
         if not k: #if k is not specified, give k value 1/3 of the sequence length
             k = int(len(self.sequence)/3)
@@ -79,6 +84,10 @@ class DbgSolver:
         if k > max_k: #if user specified k > max_k or 1/3 of the length is > 256, set k to max_k
             print(f"Max kmer size reached. Using size {max_k}")
             k=max_k
+        
+        if k < min_k:
+            print(f"k-mer size cannot be smaller than 3. Using size: {min_k}")
+            k=min_k
             
         self.k = k #intialize k   
         self.min_contig_size = 150 #min contig length

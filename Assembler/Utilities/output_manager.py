@@ -17,7 +17,7 @@ Procedure:
 
 """
 
-import sys
+
 from pathlib import Path #used to check the path
 from datetime import date #to get the date
 
@@ -40,10 +40,6 @@ def output_results(input_arg, k, output_seq, output_file, directory):
     if not Path(directory).exists():
         pathchecker.createDirs(directory)
     
-    else: #check if the directory name already exists and if the user wants to overwrite it
-       if not pathchecker.check_path_overwrite(directory):
-         print("Exiting...")
-         sys.exit()  
 
     #first create the file for the assembly
     output_file = directory + "/"+ output_file
